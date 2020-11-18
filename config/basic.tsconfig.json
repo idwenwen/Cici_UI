@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "sourceMap": true,
+    "downlevelIteration":true,
+    "removeComments": true,
+    "target": "ESNext",
+    "baseUrl": ".",
+    "paths": {
+      "lodash": ["node_modules/lodash/index.js"],
+      "@cc/tools": ["node_modules/@cc/tools/main"]
+    },
+    "module": "es6"
+  }
+}

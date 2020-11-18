@@ -1,0 +1,19 @@
+{
+  "name": "@cc/diagram",
+  "version": "1.0.0",
+  "main": "./src/main.js",
+  "author": "idwenwen<1095369685@qq.com>",
+  "license": "MIT",
+  "scripts": {
+    "add": "yarn add",
+    "build": "tsc",
+    "test": "echo success"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@cc/tools": "1.0.0",
+    "lodash": "^4.17.20"
+  }
+}
