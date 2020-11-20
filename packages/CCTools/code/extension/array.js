@@ -59,4 +59,21 @@ export function remove(list, compare, all = false) {
     });
     return deleteByIndex(list, needToDelete);
 }
+export function getLast(list, fromIndex, compare) {
+    const current = list[fromIndex];
+    if (!current) {
+        return null;
+    }
+    else {
+        const val = isFunction(compare)
+            ? compare(current)
+            : current[compare];
+        if (val) {
+            return val;
+        }
+        else {
+            return getLast(list, fromIndex - 1, compare);
+        }
+    }
+}
 //# sourceMappingURL=array.js.map

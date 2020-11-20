@@ -1,7 +1,6 @@
 {
   "extends": "../../config/basic.tsconfig",
   "compilerOptions": {
-    "types":["@cc/tools"],
     "outDir": "./code",
     "baseUrl": "../../"
   }

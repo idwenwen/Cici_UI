@@ -79,3 +79,23 @@ export function remove(list: Array<any>, compare: any, all: boolean = false) {
   });
   return deleteByIndex(list, needToDelete);
 }
+
+export function getLast(
+  list: Array<any>,
+  fromIndex: number,
+  compare: string | Function
+) {
+  const current = list[fromIndex];
+  if (!current) {
+    return null;
+  } else {
+    const val = isFunction(compare)
+      ? (<Function>compare)(current)
+      : current[<string>compare];
+    if (val) {
+      return val;
+    } else {
+      return getLast(list, fromIndex - 1, compare);
+    }
+  }
+}

@@ -2,7 +2,7 @@
  * Tools in extension
  */
 // FUNCTION
-export { each, eachRight, remove } from "./extension/array";
+export { each, eachRight, remove, getLast } from "./extension/array";
 export { toHEX, toRGBA } from "./extension/color";
 export {
   defNoEnumConst,
@@ -22,6 +22,7 @@ export { default as Tree } from "./extension/tree";
 export { display as Display } from "./common/exception";
 export { storage as Storage } from "./common/manager";
 export { default as Enviroment } from "./common/enviroment";
+export { trangle, circle, trapezoid, rect } from "./common/area";
 // CLASS
 export { Logger, Exception } from "./common/exception";
 export { UUID } from "./common/manager";
