@@ -62,7 +62,7 @@ class Variation {
 
 // Preset variation function including number-change and color change
 Variation.set(
-  ["default", "Number", "Color"],
+  ["Default", "Number", "Color"],
   [
     (process: number, _condition: Combinable, _target: Combinable) => {
       return process;

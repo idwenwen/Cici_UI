@@ -1,5 +1,5 @@
-import { each, getLast, UUID } from "@cc/tools";
-import Action, { getAction } from "./action";
+import { each, UUID } from "@cc/tools";
+import Action, { copyInstance as copyAction } from "./action";
 import Player from "./player";
 import {
   atomAction,
@@ -11,8 +11,9 @@ import {
   actable,
 } from "./typeDeclare";
 import { isNil, isFunction, toArray } from "lodash";
-import Parallel from "./parallel";
+import Parallel, { copyInstance as copyParallel } from "./parallel";
 import { toActable } from "./index";
+import animating from "../heartBeat/index";
 
 const ChainId = new UUID((origin) => `Chain_${origin}`);
 
@@ -158,6 +159,23 @@ class Chain extends Player {
   callbackReplace(cb: callback | callback[]) {
     this.cb = toArray(cb);
   }
+
+  once(cb?: callback | callback[]) {
+    animating.push(this.act(cb));
+  }
 }
 
 export default Chain;
+
+export function copyInstance(chain: Chain) {
+  const copied = each(chain.atoms)((atom) => {
+    if (atom instanceof Action) {
+      return copyAction(atom);
+    } else if (atom instanceof Chain) {
+      return copyInstance(atom);
+    } else {
+      return copyParallel(atom);
+    }
+  });
+  return new Chain(copied, chain.repeat, chain.cb);
+}

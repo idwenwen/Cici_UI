@@ -1,16 +1,15 @@
 import Action from "./action";
 import Chain from "./chain";
 import Parallel from "./parallel";
+import { Combinable, callback } from "../config/commenType";
 
-export type Combinable = any;
-
+export { Combinable, callback };
 export type timeStep = number; // time step for player
 export type duration = number;
 export type actable = Chain | Action | Parallel;
 
 export type rateCurve = (current: timeStep, total: duration) => number;
 export type milestone = (progress: number, condition: any, target: any) => any;
-export type callback = (result?: Combinable) => any;
 export type player = (timeStep: timeStep) => boolean;
 export type findIndexCompare = (val: any) => boolean;
 export type processFunction = (runningDuraion: duration, times: number) => any;

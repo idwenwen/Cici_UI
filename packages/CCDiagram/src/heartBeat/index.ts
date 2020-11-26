@@ -1,14 +1,14 @@
 /**
- * The current module is responsible for animation operation management
+ * The current module is responsible for common heart beats
  */
 
-import { Combinable, player, timeStep } from "./typeDeclare";
+import { Combinable, player, timeStep } from "../animation/typeDeclare";
 import { toArray } from "lodash";
 import { each, remove } from "@cc/tools";
 
 let runningAnimation: boolean = false;
 
-class Animating {
+class Beating {
   playing: player[];
   constructor() {
     this.playing = [];
@@ -54,6 +54,6 @@ class Animating {
   }
 }
 
-const animating = new Animating();
+const beating = new Beating();
 
-export default animating;
+export default beating;

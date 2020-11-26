@@ -30,12 +30,18 @@ class Tree {
 
   private setLevel() {
     this.level = this._parent ? this._parent.level + 1 : 1;
+    if (this._children.length > 0) {
+      each(this._children)((tree) => {
+        tree.setLevel();
+      });
+    }
   }
 
   // parent-property help to set parent-node and update level
   set parent(newParent: Tree) {
+    this._parent && this._parent.remove(this);
+    newParent._children.push(this);
     this._parent = newParent;
-    this._parent.child = this;
     this.setLevel();
   }
   get parent() {
@@ -45,7 +51,6 @@ class Tree {
   // Child-property help to set new child-node and get newest child-node
   set child(newChild: Tree) {
     newChild.parent = this;
-    this._children.push(newChild);
   }
   get child() {
     return this._children[this._children.length - 1];
@@ -58,8 +63,7 @@ class Tree {
   set children(newChildren: Tree | Tree[]) {
     if (isArray(newChildren)) {
       each(<Array<Tree>>newChildren)((val) => {
-        val.parent = this;
-        this._children.push(val);
+        val.child = this;
       });
     } else {
       this.child = <Tree>newChildren;
@@ -67,6 +71,10 @@ class Tree {
   }
   get children() {
     return this._children;
+  }
+
+  remove(child: Tree) {
+    return remove(this._children, (val) => val._uuid === child._uuid);
   }
 
   /**

@@ -2,6 +2,7 @@ import Player from "./player";
 import TimeFunction from "./timeFunction";
 import Variation from "./variation";
 import { toArray, divide } from "lodash";
+import animating from "../heartBeat/index";
 
 import {
   milestone,
@@ -117,6 +118,10 @@ class Action extends Player {
   callbackReplace(cb: callback | callback[]) {
     this.cb = toArray(cb);
   }
+
+  once(cb?: callback | callback[]) {
+    animating.push(this.act(cb));
+  }
 }
 
 export default Action;
@@ -132,5 +137,18 @@ export function getAction(setting: atomAction) {
     finalSetting.timeFunction,
     finalSetting.times,
     finalSetting.repeat
+  );
+}
+
+export function copyInstance(act: Action) {
+  return new Action(
+    act.variation.changing,
+    act.time,
+    act.cb,
+    act.target,
+    act.condition,
+    act.timeFunction.speedRate,
+    act.times,
+    act.repeat
   );
 }

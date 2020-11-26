@@ -1,6 +1,6 @@
 import { each, Exception, Mapping } from "@cc/tools";
-import { getAction } from "./action";
-import Chain from "./chain";
+import Action, { getAction, copyInstance as copyAction } from "./action";
+import Chain, { copyInstance as copyChain } from "./chain";
 import Player from "./player";
 import {
   actable,
@@ -9,16 +9,21 @@ import {
   callback,
   Combinable,
   player,
+  typeDictionary,
 } from "./typeDeclare";
-import { isObject, isString, isNil } from "lodash";
-import Parallel from "./parallel";
-import animating from "./animate";
+import { isObject, isString, isNil, capacity } from "lodash";
+import Parallel, { copyInstance as copyParallel } from "./parallel";
+import animating from "../heartBeat/index";
+import Variation from "./variation";
+
+type skipOperation = (actable: actable, inRunning: boolean) => void;
 
 /**
  * Animation-instance is used to manage component`s animation info.
  */
 class Animate {
   static actable: Mapping<string, actable> = new Mapping<string, actable>();
+  static record: typeDictionary = {};
 
   static set(name: string, act: actable);
   static set(name: string, act: atomAction);
@@ -31,10 +36,29 @@ class Animate {
     } else {
       Animate.actable.set(name, getAction(act));
     }
+    Animate.record[capacity(name)] = name;
   }
 
   static get(name: string) {
-    return Animate.actable.get(name);
+    const rec = Animate.record[capacity(name)];
+    if (!rec) return void 0;
+    const act = Animate.actable.get(rec);
+    if (act instanceof Action) {
+      return copyAction(act);
+    } else if (act instanceof Chain) {
+      return copyChain(act);
+    } else if (act instanceof Parallel) {
+      return copyParallel(act);
+    } else {
+      return void 0;
+    }
+  }
+
+  static remove(name: string) {
+    if (Animate.actable.has(name)) {
+      delete Animate.record[capacity(name)];
+      Animate.actable.delete(name);
+    }
   }
 
   animate: Mapping<string, actable>;
@@ -133,19 +157,65 @@ class Animate {
       actable.continue();
       this.runningAct.set(name, play);
       this.pauseAct.delete(name);
+      animating.push(play);
+    } finally {
+      void 0;
+    }
+  }
+
+  private skiping(name: string, opera: skipOperation) {
+    let inRunning = false;
+    try {
+      let act = this.runningAct.get(name); // Find actable from current running list
+      if (!act) act = this.pauseAct.get(name);
+      else inRunning = true;
+      if (!act) {
+        throw new Exception(
+          "DoNotExistActable",
+          "Cannot find relative animationg",
+          Exception.level.Error
+        );
+      }
+      const actable = this.animate.get(name);
+      opera(actable, inRunning);
     } finally {
       void 0;
     }
   }
 
   // end current milestone
-  skip() {}
+  skip(name: string) {
+    this.skiping(name, (actable, inRunning) => {
+      actable.end();
+      if (actable instanceof Action) {
+        (inRunning ? this.runningAct : this.pauseAct).delete(name);
+      }
+    });
+  }
 
   // finish currnt milestone
-  next() {}
+  next(name: string) {
+    this.skiping(name, (actable, inRunning) => {
+      actable.finish();
+      if (actable instanceof Action) {
+        (inRunning ? this.runningAct : this.pauseAct).delete(name);
+      }
+    });
+  }
 
-  finishAll() {}
-  endAll() {}
+  finishAll() {
+    this.skiping(name, (actable, inRunning) => {
+      actable.finishAll();
+      (inRunning ? this.runningAct : this.pauseAct).delete(name);
+    });
+  }
+
+  endAll() {
+    this.skiping(name, (actable, inRunning) => {
+      actable.finish();
+      (inRunning ? this.runningAct : this.pauseAct).delete(name);
+    });
+  }
 }
 
 export function toActable(
@@ -186,3 +256,58 @@ export function toActable(
     return void 0;
   }
 }
+
+/**
+ * Assignment operation for attribute change
+ */
+Animate.set(
+  "assignment",
+  getAction({
+    variation: Variation.TYPE.Number,
+    condition: 0,
+    target: 1,
+    time: 0,
+    repeat: false,
+  })
+);
+
+/**
+ * One second animating
+ */
+Animate.set(
+  "oneSecond",
+  getAction({
+    variation: Variation.TYPE.Number,
+    condition: 0,
+    target: 100,
+    time: 10000,
+    repeat: false,
+  })
+);
+
+/**
+ * One second animating, represent processing
+ */
+Animate.set(
+  "oneSecond",
+  getAction({
+    variation: Variation.TYPE.Number,
+    condition: 0,
+    target: 100,
+    time: 1000,
+    repeat: false,
+  })
+);
+
+Animate.set(
+  "oneSecondReverse",
+  getAction({
+    variation: Variation.TYPE.Number,
+    condition: 100,
+    target: 0,
+    time: 1000,
+    repeat: false,
+  })
+);
+
+export default Animate;

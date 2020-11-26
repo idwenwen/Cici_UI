@@ -1,5 +1,6 @@
 import { each, Mapping, UUID } from "@cc/tools";
-import Action, { getAction } from "./action";
+import Action, { copyInstance as copyAction } from "./action";
+import { copyInstance as copyChain } from "./chain";
 import Chain from "./chain";
 import Player from "./player";
 import {
@@ -13,6 +14,7 @@ import {
 } from "./typeDeclare";
 import { toArray, isNil, isFunction, flatten } from "lodash";
 import { toActable } from "./index";
+import animating from "../heartBeat/index";
 
 const ParallelId = new UUID((origin) => `Parallel_${origin}`);
 
@@ -130,6 +132,23 @@ class Parallel extends Player {
   callbackReplace(cb: callback | callback[]) {
     this.cb = toArray(cb);
   }
+
+  once(cb?: callback | callback[]) {
+    animating.push(this.act(cb));
+  }
 }
 
 export default Parallel;
+
+export function copyInstance(parallel: Parallel) {
+  const copied = each(parallel.atoms)((atom) => {
+    if (atom instanceof Action) {
+      return copyAction(atom);
+    } else if (atom instanceof Chain) {
+      return copyChain(atom);
+    } else if (atom instanceof Parallel) {
+      return copyInstance(atom);
+    }
+  });
+  return new Parallel(copied, parallel.repeat, parallel.cb);
+}
