@@ -2,6 +2,6 @@
   "extends": "../../config/basic.tsconfig",
   "compilerOptions": {
     "outDir": "./code",
-    "baseUrl": "../../"
+    "baseUrl": "../../",
   }
 }
