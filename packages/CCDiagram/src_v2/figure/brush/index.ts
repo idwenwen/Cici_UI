@@ -1,9 +1,12 @@
 import { each } from "@cc/tools";
-import { Callback } from "../../../commonType";
+import { Callback } from "../../commonType";
+import { toArray } from "lodash";
 
 type CallbackList = {
-  before?: Callback;
-  after?: Callback;
+  beforeSave?: Callback | Callback[];
+  beforeDraw?: Callback | Callback[];
+  afterDraw?: Callback | Callback[];
+  afterRestore?: Callback | Callback[];
 };
 
 /**
@@ -55,13 +58,23 @@ class Brush {
     }
   }
 
-  drawing(cb: CallbackList, style?: object) {
+  private call(cb?: Callback | Callback[]) {
+    if (cb) {
+      cb = toArray(cb);
+      each(cb)((val) => {
+        val.call(this, this.ctx);
+      });
+    }
+  }
+
+  drawing(cb: CallbackList, parameter: any) {
+    this.call(cb.beforeSave);
     this.save();
-    cb.before && cb.before.call(this, this.ctx); // 绘制钱回调函数
-    this.style(style);
-    this.drawPath.call(this, this.ctx);
-    cb.after && cb.after.call(this, this.ctx); // 绘制后回调函数
+    this.call(cb.beforeSave); // 绘制钱回调函数
+    this.drawPath.call(this, this.ctx, parameter);
+    this.call(cb.afterDraw); // 绘制后回调函数
     this.restore();
+    this.call(cb.afterRestore);
   }
 }
 

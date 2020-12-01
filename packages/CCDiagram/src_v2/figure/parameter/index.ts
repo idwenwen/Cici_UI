@@ -6,10 +6,11 @@
 
 import { each, remove } from "@cc/tools";
 import { Watching } from "../../../observing/watcher";
-import { isNil } from "lodash";
+import { isNil, isObject, isFunction } from "lodash";
 import Watcher from "../../../observing/watcher";
 import Observer from "../../../observing/index";
 import { Key } from "../../../commonType";
+import { Combinable } from "packages/CCDiagram/src/config/commenType";
 
 class Parameter {
   _imply: object; // 映射关系维护表
@@ -50,12 +51,33 @@ class Parameter {
     para.subscribe(this._imply["origin"]);
   }
 
+  /**
+   * 更新映射表内容
+   * @param key 对应字段
+   * @param imply 字段新参数
+   */
+  implyUpdate(key: string, imply: any);
+  implyUpdate(key: object | Function, imply?: never);
+  implyUpdate(key: Combinable, imply: Combinable) {
+    let updated;
+    if (isObject(key) || isFunction(key)) {
+      this._imply["_getter"] = key;
+    } else {
+      this._imply[key] = imply;
+    }
+    this._imply["origin"].getterUpdate(updated);
+  }
+
+  /**
+   * 订阅者更新observer
+   * @param watcher 订阅对象订阅可观察者
+   */
   subscribe(watcher: Watcher) {
     if (!(this._cache instanceof Proxy)) {
       // 说明当前的_cache没有被代理，即当前对象不可被订阅
       this._cache = new Observer(this._cache).obsever;
     }
-    watcher.setContext(this._cache);
+    watcher.contextUpdate(this._cache);
   }
 }
 

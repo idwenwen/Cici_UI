@@ -13,6 +13,7 @@ declare class Tree {
     get first(): Tree;
     set children(newChildren: Tree | Tree[]);
     get children(): Tree | Tree[];
+    remove(child: Tree): any[];
     root(level?: number): Tree;
     upper(upperLevel: number): boolean;
     find(down: number): Tree[];

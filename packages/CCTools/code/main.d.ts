@@ -3,6 +3,7 @@ export { toHEX, toRGBA } from "./extension/color";
 export { defNoEnumConst, define, defNoEnum, defNoConfig, } from "./extension/object";
 export { default as Mapping } from "./extension/mapping";
 export { default as Tree } from "./extension/tree";
+export { default as domOperation } from "./extension/domOperation";
 export { display as Display } from "./common/exception";
 export { storage as Storage } from "./common/manager";
 export { default as Enviroment } from "./common/enviroment";

@@ -9,3 +9,4 @@ export type Dictionary = {
 };
 
 export type Callback = (...result: any[]) => any;
+export type Point = [number, number];

@@ -2,6 +2,7 @@ import { each, Exception, UUID } from "@cc/tools";
 import Dep, { popTarget, pushTarget } from "./dep";
 import { Callback, Key } from "../commonType";
 import { toArray, isObject, isFunction, isString } from "lodash";
+import { eq } from "lodash";
 
 // 唯一ID
 const WatcherId = new UUID();
@@ -143,11 +144,13 @@ class Watcher {
     this.run();
   }
 
-  // 上下文内容有更新
-  setContext(context: any) {
-    this.context = context;
-    this.dirty = true;
-    this.run();
+  // 上下文内容有更新, 如果与原函数对象不同。
+  contextUpdate(context: any) {
+    if (!eq(context, this.context)) {
+      this.context = context;
+      this.dirty = true;
+      this.run();
+    }
   }
 
   // 发布者有更新了
@@ -199,7 +202,25 @@ export function Watching(
         tar = target;
       }
       // 默认访问映射表内容
-      tar[key] = value;
+      if (key.toString().search("_getter") >= 0) {
+        if (isObject(value)) {
+          each(value)((val, key) => {
+            if (!eq(val, tar[key])) {
+              tar[key] = val;
+            }
+          });
+        } else {
+          tar = value;
+        }
+      } else if (key.toString().search("_context") >= 0) {
+        // 修改上下文内容。
+        if (!eq(context, this.context)) {
+          this.context = context;
+        }
+      } else {
+        // 其他内容的修改。
+        tar[key] = value;
+      }
       if (updateGetter) {
         // 映射表内容修改的话，watcher将会更新，更新形式依据当前的是否懒加载的形式来进行。
         target.updated();
