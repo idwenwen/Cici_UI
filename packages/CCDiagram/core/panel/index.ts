@@ -2,7 +2,7 @@ import { domOperation, each, UUID } from "@cc/tools";
 import { Point } from "../commonType";
 import { eq, trim, isObject, toArray } from "lodash";
 import { DomMatrix } from "../matrix/index";
-import { Combinable } from "packages/CCDiagram/src/config/commenType";
+import { Combinable } from "../commonType";
 import Diagram from "../diagram/index";
 
 export type PanelSetting = {

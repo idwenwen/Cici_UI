@@ -4,7 +4,7 @@ import { isNil, isObject, isFunction } from "lodash";
 import Watcher from "../observing/watcher";
 import Observer from "../observing/index";
 import { Key } from "../commonType";
-import { Combinable } from "packages/CCDiagram/src/config/commenType";
+import { Combinable } from "../commonType";
 
 /**
  * 参数对象
