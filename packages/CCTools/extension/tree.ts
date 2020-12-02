@@ -226,8 +226,12 @@ class Tree {
   ) {
     const root = fromRoot ? this.root() : this;
     const iter = root.iteration(deep, reserve);
-    for (const val of iter) {
-      operation(val);
+    try {
+      for (const val of iter) {
+        operation(val);
+      }
+    } finally {
+      void 0;
     }
   }
 }

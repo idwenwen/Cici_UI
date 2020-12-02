@@ -1,6 +1,7 @@
 import { each } from "@cc/tools";
-import { Callback } from "../../commonType";
+import { Callback } from "../commonType";
 import { toArray } from "lodash";
+import Panel from "../panel/index";
 
 type CallbackList = {
   beforeSave?: Callback | Callback[];
@@ -14,10 +15,12 @@ type CallbackList = {
  * 1. 主要是canvas的相关信息内容
  */
 class Brush {
+  panel: Panel;
   ctx: CanvasRenderingContext2D;
   drawPath: Function;
-  constructor(canvas: any, drawPath: Function) {
-    this.ctx = canvas.getContext("2d");
+  constructor(canvas: Panel, drawPath: Function) {
+    this.panel = canvas;
+    this.ctx = canvas.canvasDom.getContext("2d");
     this.drawPath = drawPath;
   }
   save() {
@@ -71,7 +74,7 @@ class Brush {
     this.call(cb.beforeSave);
     this.save();
     this.call(cb.beforeSave); // 绘制钱回调函数
-    this.drawPath.call(this, this.ctx, parameter);
+    this.drawPath.call(this, this.ctx, parameter, this.panel);
     this.call(cb.afterDraw); // 绘制后回调函数
     this.restore();
     this.call(cb.afterRestore);

@@ -1,17 +1,16 @@
+import { each, remove } from "@cc/tools";
+import { Watching } from "../observing/watcher";
+import { isNil, isObject, isFunction } from "lodash";
+import Watcher from "../observing/watcher";
+import Observer from "../observing/index";
+import { Key } from "../commonType";
+import { Combinable } from "packages/CCDiagram/src/config/commenType";
+
 /**
  * 参数对象
  * 1. 可以是订阅者，同时也可以发布者。
  * 2. 对象可以直接获取到相关的数据资源。
  */
-
-import { each, remove } from "@cc/tools";
-import { Watching } from "../../../observing/watcher";
-import { isNil, isObject, isFunction } from "lodash";
-import Watcher from "../../../observing/watcher";
-import Observer from "../../../observing/index";
-import { Key } from "../../../commonType";
-import { Combinable } from "packages/CCDiagram/src/config/commenType";
-
 class Parameter {
   _imply: object; // 映射关系维护表
 

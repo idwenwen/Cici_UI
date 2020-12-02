@@ -9,6 +9,16 @@ export type animateSetting = {
   [name: string]: CanBeActable | playable | (playable | CanBeActable)[];
 };
 
+export enum AnimationOperation {
+  Dispatch = "dispatch",
+  Pause = "pause",
+  Continue = "continue",
+  Finish = "finish",
+  End = "end",
+  Times = "times",
+  Repeat = "repeat",
+}
+
 class Animate {
   context: any;
   animations: Mapping<string, playable[]>;
@@ -42,7 +52,7 @@ class Animate {
     }
   }
 
-  removeAnimation(name: string | string[]) {
+  remove(name: string | string[]) {
     name = toArray(name);
     each(<string[]>name)((type) => {
       this.animations.delete(type);

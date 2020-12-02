@@ -1,15 +1,29 @@
 import { domOperation, each, UUID } from "@cc/tools";
 import { Point } from "../commonType";
-import { eq, trim } from "lodash";
+import { eq, trim, isObject, toArray } from "lodash";
 import { DomMatrix } from "../matrix/index";
+import { Combinable } from "packages/CCDiagram/src/config/commenType";
+import Diagram from "../diagram/index";
+
+export type PanelSetting = {
+  width?: number;
+  height?: number;
+  position?: Point;
+  container?: HTMLElement;
+};
+
+type EventRecord = {
+  [type: string]: Function | Function[];
+};
 
 const PanelId = new UUID((index) => `canvas_${index}`);
 /**
  * 记录单一的canvas信息内容。
  */
 class Panel {
+  // TODO: 添加事件的相关操作。
   uuid: string;
-  canvasDom: any; // canvas dom 元素
+  canvasDom: HTMLCanvasElement; // canvas dom 元素
 
   canvasWidth: number; // canvas的相关宽度。
   canvasHeight: number;
@@ -17,14 +31,19 @@ class Panel {
   position: Point;
   transfrom: DomMatrix;
 
+  events: EventRecord;
+  diagram: Diagram;
+
   constructor(
     width: number = 100,
     height: number = 50,
     position: Point = [0, 0],
-    container?: HTMLElement
+    container?: HTMLElement,
+    events?: EventRecord,
+    diagram?: Diagram
   ) {
     this.uuid = PanelId.get().toString();
-    this.canvasDom = domOperation.create("canvas");
+    this.canvasDom = <HTMLCanvasElement>domOperation.create("canvas");
     this.position = position;
     this.transfrom = new DomMatrix();
     this.canvasWidth = width;
@@ -36,6 +55,9 @@ class Panel {
         .settingPosition`top ${this.position[0]} left ${this.position[1]}`,
     });
     container && container.append(this.canvasDom);
+    this.events = {};
+    events && this.addEvents(events);
+    this.diagram = diagram;
   }
 
   private settingPosition(str, ...content: any[]) {
@@ -48,6 +70,36 @@ class Panel {
       }
     });
     return final;
+  }
+
+  addEvents(type: string, func: Function | Function[]);
+  addEvents(type: EventRecord, func?: never);
+  addEvents(type: Combinable, func: Combinable) {
+    if (isObject(type)) {
+      each(type)((eves, key) => {
+        this.addEvents(key, eves);
+      });
+    } else {
+      func = toArray(func);
+      const finalEventFunc: Function[] = each(func)((ope) => {
+        const connectToDiagramEvent = (eve) => {
+          ope.call(this.diagram, eve);
+        };
+        this.canvasDom.addEventListener(type, connectToDiagramEvent);
+        return connectToDiagramEvent;
+      });
+      this.events[type]
+        ? (<Function[]>this.events[type]).push(...finalEventFunc)
+        : finalEventFunc;
+    }
+  }
+
+  removeEvents(type: string) {
+    const event = toArray(this.events[type]);
+    each(event)((eve) => {
+      this.canvasDom.removeEventListener(type, eve);
+    });
+    delete this.events[type];
   }
 
   set top(newTop: number) {
@@ -150,8 +202,30 @@ class Panel {
   get scaleY() {
     return this.transfrom.scaleY;
   }
+
+  sameAs(panel: Panel) {
+    this.top = panel.top;
+    this.left = panel.left;
+    this.width = panel.width;
+    this.height = panel.height;
+    this.translateX = panel.translateX;
+    this.translateY = panel.translateX;
+    this.rotateX = panel.rotateX;
+    this.rotateY = panel.rotateY;
+    this.scaleY = panel.scaleY;
+    this.scaleX = panel.scaleX;
+  }
 }
 
 export default Panel;
 
 export const CanvasForCalculate = new Panel();
+
+export function toPanel(setting: PanelSetting) {
+  return new Panel(
+    setting.width,
+    setting.height,
+    setting.position,
+    setting.container
+  );
+}

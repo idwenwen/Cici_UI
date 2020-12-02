@@ -1,12 +1,12 @@
 import { each, Exception, Mapping } from "@cc/tools";
-import { Combinable } from "../../commonType";
+import { Combinable } from "../commonType";
 import { toParameter } from "../parameter/index";
 import { isObject, isString } from "lodash";
-import Figure from "../index";
+import Figure from "../figure/index";
 import Brush from "../brush/index";
-import { Point } from "../../commonType";
-import { CanvasMatrix } from "../../matrix/index";
-import { CanvasForCalculate } from "../../panel/index";
+import { Point } from "../commonType";
+import { CanvasMatrix } from "../matrix/index";
+import Panel, { CanvasForCalculate } from "../panel/index";
 
 export type RouteOperation = (
   ctx: CanvasRenderingContext2D,
@@ -65,7 +65,7 @@ class DrawPath {
     this.matrix = new CanvasMatrix();
   }
 
-  drawing(canvas: any, parameter: any, cb: any = {}) {
+  drawing(canvas: Panel, parameter: any, cb: any = {}) {
     const _t = this;
     const defaultCall = (ctx) => {
       _t.matrix.transform(ctx); // 在存储之前进行变形
@@ -82,8 +82,9 @@ class DrawPath {
   }
 
   // 判定点是否在路径之中。
-  inPath(point: Point, parameter: any): boolean {
+  inPath(point: Point, canvas: Panel, parameter: any): boolean {
     let inHere = false;
+    CanvasForCalculate.sameAs(canvas);
     this.drawing(CanvasForCalculate, parameter, {
       afterDraw: (ctx: CanvasRenderingContext2D) => {
         inHere = ctx.isPointInPath(point[0], point[1]);

@@ -1,5 +1,5 @@
 import { each, Exception, Mapping } from "@cc/tools";
-import { Combinable } from "../commonType";
+import { Combinable, Point } from "../commonType";
 import { isObject, toArray } from "lodash";
 import { assignment } from "../controller/action/action";
 
@@ -39,7 +39,7 @@ class Events {
   }
 
   // 事件触发。
-  dispatch(name: string, ...meta: any[]) {
+  dispatch(name: string, point: Point, ...meta: any[]) {
     try {
       let eve = this.eventsList.get(name); // 获取当前时间函数
       if (!eve) {
@@ -54,7 +54,7 @@ class Events {
         // 设置当前转变到心跳函数之中，进行同步操作。
         eve = toArray(eve);
         each(eve)((func) => {
-          func.call(this.context, ...meta);
+          func.call(this.context, point, ...meta);
         });
       });
     } finally {
