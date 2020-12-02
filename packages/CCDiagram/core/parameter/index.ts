@@ -1,4 +1,4 @@
-import { each, remove } from "@cc/tools";
+import { defNoEnum, each, remove } from "@cc/tools";
 import { Watching } from "../observing/watcher";
 import { isNil, isObject, isFunction } from "lodash";
 import Watcher from "../observing/watcher";
@@ -16,8 +16,10 @@ class Parameter {
 
   _cache: object; // 最终获取到的结果。
   constructor(origin: object, context?: any) {
-    this._imply = this.initWatcher(origin, context);
-    this._cache = null; // 开始的时候还没有结果。
+    defNoEnum(this, {
+      _imply: this.initWatcher(origin, context),
+      _cache: null, // 开始的时候还没有结果。
+    });
   }
 
   /**
@@ -95,6 +97,8 @@ export function toParameter(origin: object, context?: any) {
       if (key.toString() === "origin") {
         // key为origin的时候返回parameter实例
         return target;
+      } else if (key.toString() === "_cache") {
+        return target._cache;
       } else {
         // 返回当前的_cache之中的内容。
         return target._cache[key];

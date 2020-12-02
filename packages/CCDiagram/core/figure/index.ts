@@ -10,6 +10,7 @@ import Animate, {
 } from "../animation/index";
 import { toParameter } from "../parameter/index";
 import Panel from "../panel/index";
+import Watcher, { Watching } from "../observing/watcher";
 
 export type FigureSetting = {
   parameter: RouteImply;
@@ -40,7 +41,7 @@ class Figure extends Tree {
     children?: Figure | Figure[]
   ) {
     super(parent, children);
-    this.drawPath = new DrawPath(<Figure>this, path);
+    this.drawPath = new DrawPath(path);
     // 获取parameter的相关上下文内容。
     this.contextUpdated(imply);
     // proxy给当前对象，方便用户获取需要的数据。并且判断inPath的情况。
@@ -89,9 +90,20 @@ class Figure extends Tree {
   contextUpdated(implying?: object | Function) {
     const context = this.parent.parameter;
     if (this.parameter) {
-      this.parameter.watching(context);
+      this.parameter["_context"] = context;
     } else {
       this.parameter = toParameter(implying, context);
+      const watcher = Watching(
+        null,
+        () => {
+          Object.keys(this);
+          return this;
+        },
+        (_res) => {
+          this.belongTo.needToDraw();
+        }
+      );
+      this.parameter["origin"].subscribe();
     }
   }
 

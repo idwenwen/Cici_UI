@@ -1,8 +1,6 @@
 import { each, Exception, Mapping } from "@cc/tools";
 import { Combinable } from "../commonType";
-import { toParameter } from "../parameter/index";
 import { isObject, isString } from "lodash";
-import Figure from "../figure/index";
 import Brush from "../brush/index";
 import { Point } from "../commonType";
 import { CanvasMatrix } from "../matrix/index";
@@ -55,10 +53,8 @@ class DrawPath {
   }
 
   drawPath: RouteOperation; // 图形绘制方法
-  belongTo: Figure; // 属于哪一份figure。
   matrix: CanvasMatrix; // 当前路径的变形情况。
-  constructor(figure: Figure, drawPath?: string | RouteOperation) {
-    this.belongTo = figure;
+  constructor(drawPath?: string | RouteOperation) {
     this.drawPath = <RouteOperation>(
       (isString(drawPath) ? DrawPath.get(<string>drawPath) : drawPath)
     );

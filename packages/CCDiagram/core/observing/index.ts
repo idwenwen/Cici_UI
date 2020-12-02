@@ -86,10 +86,10 @@ const DefaultOperation = (observer: Observer) => {
 class Observer {
   dep: Dep;
   obsever: any; // 代理对象。
-  _origin: any; // 原对象拷贝备份。
+  origin: any; // 原对象拷贝备份。
   constructor(observed: object) {
     this.dep = new Dep();
-    this._origin = observed;
+    this.origin = observed;
     this.obsever = this.obser(observed);
   }
 

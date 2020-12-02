@@ -1,7 +1,7 @@
 {
   "name": "@cc/diagram",
   "version": "1.0.0",
-  "main": "./src/main.js",
+  "main": "./main.js",
   "author": "idwenwen<1095369685@qq.com>",
   "license": "MIT",
   "scripts": {
