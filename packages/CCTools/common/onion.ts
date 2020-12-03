@@ -3,7 +3,7 @@
  */
 
 import { Setting } from "../config/config";
-import { display, Exception, Logger } from "./exception";
+import { display, Exception } from "./exception";
 import { UUID } from "./manager";
 
 type onionOperation = (context, next) => any;
@@ -30,7 +30,6 @@ export class Middleware {
   compose() {
     const wares = this.middlewares;
     const running = (context, next) => {
-      const _t = this;
       let index = -1;
       function dispatch(i: number) {
         if (i <= index) {

@@ -228,7 +228,7 @@ class Tree {
     const iter = root.iteration(deep, reserve);
     try {
       for (const val of iter) {
-        operation(val);
+        operation.call(val, val);
       }
     } finally {
       void 0;
