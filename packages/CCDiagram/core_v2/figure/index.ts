@@ -1,23 +1,22 @@
-import { each, Exception, Tree } from "@cc/tools";
+import { defNoEnum, each, Exception, Tree } from "@cc/tools";
 import { Combinable, Point } from "../commonType";
 import DrawPath, {
   PathDependence,
   PathDrawing,
   Paths,
 } from "../drawPath/index";
-import { isString, isObject, isFunction } from "lodash";
+import { isObject, isFunction } from "lodash";
 import Events, { EventOperations } from "../events/index";
 import Animate, {
   animateSetting,
   AnimationOperation,
 } from "../animation/index";
 import { toParameter } from "../parameter/index";
-import Watcher, { Watching } from "../observer/watcher";
-import Matrix from "../matrix/index";
-import { CanvasMatrix } from "packages/CCDiagram/core/matrix/index";
+import { Watching } from "../observer/watcher";
 import { is } from "../utils/index";
-import Brushing from "../brush/index";
 import { acquistion } from "../config/common";
+import Progress from "../controller/progress";
+import Transform from "../Transform/index";
 
 export type FigureSetting = {
   parameter: Paths;
@@ -33,8 +32,14 @@ export enum AnimationExtension {
 }
 
 class Figure extends Tree {
+  static Progress = Progress; // 提供设置接口
+  static Path = DrawPath; // 提供设置接口
+
+  _display: boolean; // 当前figure是否展示。
   drawPath?: DrawPath; // 表示的是当前绘制路径内容。
-  matrix?: CanvasMatrix; // 当前图形的变形
+
+  // 当前绘制路径变形设置。
+  transform?: Transform;
   parameter: any; // 相关的对象内容。
   events: Events;
   animation: Animate;
@@ -46,9 +51,14 @@ class Figure extends Tree {
     animate?: animateSetting,
 
     parent?: Figure,
-    children?: Figure | Figure[]
+    children?: Figure | Figure[],
+
+    display: boolean = true
   ) {
     super(parent, children);
+    defNoEnum(this, {
+      _display: display,
+    });
     this.drawPath = path ? new DrawPath(path) : null;
     // 新增parameter内容，关联上下文内容
     this.connection(imply);
@@ -124,10 +134,23 @@ class Figure extends Tree {
     return acquistion(this, CustomerHandler);
   }
 
+  set display(showing: boolean) {
+    // 当前节点与子节点全部隐藏
+    if (showing !== this.display) {
+      this.notify(() => {
+        this._display = showing;
+      }, false);
+    }
+  }
+
+  get display() {
+    return this._display;
+  }
+
   isPointInFigure(point: Point, ctx: CanvasRenderingContext2D) {
     let result = false;
     this.notify(() => {
-      if (this.drawPath)
+      if (this.drawPath && this.display)
         this.drawPath.drawing(ctx, this.parameter, {
           afterDraw: (ctxx: CanvasRenderingContext2D) => {
             result = ctxx.isPointInPath(point[0], point[1]);
@@ -148,7 +171,9 @@ class Figure extends Tree {
     // 以广度遍历的形式从下往上绘制内容。
     this.notify(
       () => {
-        this.drawPath && this.drawPath.drawing(ctx, this.parameter); // 当前节点的绘制
+        this.display &&
+          this.drawPath &&
+          this.drawPath.drawing(ctx, this.parameter); // 当前节点的绘制
       },
       true,
       false,

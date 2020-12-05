@@ -1,12 +1,12 @@
 import { isObject, trim, toArray, eq } from "lodash";
 import { each, remove } from "./array";
 
-type DOMAttrs = {
+export type DOMAttrs = {
   [name: string]: string | number | object | Array<string>; // 当且仅当name为style为Object， 当name为class的时候可以为数组
 };
 type Combinable = any;
 
-class DomExtension {
+export class DomExtension {
   create(name: string) {
     return document.createElement(name);
   }

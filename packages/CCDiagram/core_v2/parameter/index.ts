@@ -37,7 +37,7 @@ class Parameter {
       if (this.cache instanceof Proxy) {
         const keys = Object.keys(this.cache);
         each(result)((val, key) => {
-          if (!eq(this.cache[key], val)) this.cache[key] = val;
+          if (!eq(this.cache[key], val)) this.cache[key] = val; // 两值不相同的情况下
           remove(keys, (k) => k === key);
         });
         if (keys.length > 0) {

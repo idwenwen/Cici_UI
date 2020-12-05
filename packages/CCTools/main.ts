@@ -14,7 +14,11 @@ export {
 // CLASS
 export { default as Mapping } from "./extension/mapping";
 export { default as Tree } from "./extension/tree";
-export { default as domOperation } from "./extension/domOperation";
+export {
+  default as domOperation,
+  DomExtension,
+  DOMAttrs,
+} from "./extension/domOperation";
 
 /**
  * Tools in common

@@ -1,4 +1,4 @@
-import { Key } from "../commonType";
+import { Key } from "../core_v2/commonType";
 import { eq } from "lodash";
 
 export function into(str: Key, match: string) {

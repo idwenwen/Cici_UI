@@ -1,8 +1,8 @@
 import { defNoEnum, each, Exception } from "@cc/tools";
 import Dep from "./dep";
 import { isObject, isArray, eq } from "lodash";
-import { Key } from "../commonType";
-import { acquistion } from "../config/common";
+import { Key } from "../core_v2/commonType";
+import { acquistion } from "../core_v2/config/common";
 import { intoFirst } from "../utils/index";
 
 /**

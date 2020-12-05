@@ -1,10 +1,10 @@
 import { defNoEnum, each, Exception, UUID } from "@cc/tools";
 import Dep, { popTarget, pushTarget } from "./dep";
-import { Callback, Key } from "../commonType";
+import { Callback, Key } from "../core_v2/commonType";
 import { toArray, isObject, isFunction, isString } from "lodash";
 import { eq } from "lodash";
 import { into, intoFirst, is } from "../utils/index";
-import { acquistion } from "../config/common";
+import { acquistion } from "../core_v2/config/common";
 import Observer from "./index";
 
 // 唯一ID

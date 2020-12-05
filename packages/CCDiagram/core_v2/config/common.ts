@@ -1,5 +1,5 @@
 import { Key } from "../commonType";
-import { intoFirst, is } from "../utils/index";
+import { intoFirst, is } from "../../utils/index";
 
 export const ORIGIN = "origin"; // 保留字段，表示proxy之中通过origin可以获取原对象内容。
 
