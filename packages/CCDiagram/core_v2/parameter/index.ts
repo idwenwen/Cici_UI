@@ -1,10 +1,10 @@
 import { defNoEnum, each, remove } from "@cc/tools";
-import { Watching } from "../observer/watcher";
+import { Watching } from "../../observer/watcher";
 import { isNil, isObject, isFunction, eq } from "lodash";
-import { Observing } from "../observer/index";
+import { Observing } from "../../observer/index";
 import { Key } from "../commonType";
 import { Combinable } from "../commonType";
-import { intoFirst } from "../utils/index";
+import { intoFirst } from "../../utils/index";
 import { acquistion } from "../config/common";
 
 /**

@@ -12,8 +12,8 @@ import Animate, {
   AnimationOperation,
 } from "../animation/index";
 import { toParameter } from "../parameter/index";
-import { Watching } from "../observer/watcher";
-import { is } from "../utils/index";
+import { Watching } from "../../observer/watcher";
+import { is } from "../../utils/index";
 import { acquistion } from "../config/common";
 import Progress from "../controller/progress";
 import Transform from "../Transform/index";

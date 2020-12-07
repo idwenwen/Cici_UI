@@ -1,13 +1,14 @@
-import { each } from "@cc/tools";
+import { domOperation, each } from "@cc/tools";
 import { Combinable } from "packages/CCDiagram/core/commonType";
 import { isObject, eq, toArray } from "lodash";
+import { Observing } from "packages/CCDiagram/observer/index";
 
-type Styles = {
+export type Styles = {
   [str: string]: string;
 };
 
 class CanvasStyle {
-  style: Styles;
+  style: Styles | any;
   constructor(styleList: Styles) {
     this.set(styleList);
   }
@@ -32,6 +33,20 @@ class CanvasStyle {
     each(toArray(name))((val) => {
       delete this.style[val];
     });
+  }
+
+  /**
+   * 订阅当前内容。
+   */
+  subscribe() {
+    // 当前数据对象可以订阅。
+    if (!(this.style instanceof Proxy)) {
+      this.style = Observing(this.style);
+    }
+  }
+
+  setStyle(dom: HTMLElement) {
+    domOperation.setStyle(dom, this.style);
   }
 }
 

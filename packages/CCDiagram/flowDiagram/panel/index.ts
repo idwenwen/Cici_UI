@@ -1,15 +1,11 @@
 import { domOperation, each, UUID, DomExtension } from "@cc/tools";
-import { Point } from "../commonType";
 import { eq, trim, isObject, toArray } from "lodash";
-import { DomMatrix } from "../matrix/index";
+import CanvasStyle, { Styles } from "./style";
+import Classes from "./classes";
+import Transform, { TransformAttr } from "./transform";
 import { Combinable } from "../commonType";
-
-export type PanelSetting = {
-  width?: number;
-  height?: number;
-  position?: Point;
-  container?: HTMLElement;
-};
+import Diagram from "../diagram/index";
+import { Watching } from "packages/CCDiagram/core/observing/watcher";
 
 type EventRecord = {
   [type: string]: Function | Function[];
@@ -27,47 +23,29 @@ class Panel {
   _width: number; // canvas的相关宽度 与 高度，主要是针对canva的像素高度。
   _height: number;
 
-  position: Point; // panel的相对总画布的位置。
-  transfrom: DomMatrix; // 当前内容的变形。
+  style: CanvasStyle;
+  class: Classes;
+  transfrom: Transform;
 
   events: EventRecord;
+  diagram: Diagram;
 
   constructor(
-    width: number = 100,
-    height: number = 50,
-    position: Point = [0, 0],
     id?: string,
-    container?: HTMLElement,
-    events?: EventRecord
+    width: number = 100,
+    height: number = 100,
+    style?: Styles,
+    classes?: string | string[],
+    transform?: TransformAttr
   ) {
     this.uuid = id || PanelId.get().toString(); // 当前Dom元素的Id
     this.dom = <HTMLCanvasElement>domOperation.create("canvas");
     this._width = width;
     this._height = height;
 
-    this.position = position;
-    this.transfrom = new DomMatrix();
-    domOperation.setAttr(this.canvasDom, {
-      width,
-      height,
-      style: this
-        .settingPosition`top ${this.position[0]} left ${this.position[1]}`,
-    });
-    container && container.append(this.canvasDom);
-    this.events = {};
-    events && this.addEvents(events);
-  }
-
-  private settingPosition(str, ...content: any[]) {
-    let final = {
-      position: "absolute",
-    };
-    each(content)((val, index) => {
-      if (!eq(val, 0)) {
-        final[trim(str[index])] = val + "px";
-      }
-    });
-    return final;
+    this.connectToStyle(style);
+    this.connectToClass(classes);
+    this.connectToTransfrom(transform);
   }
 
   addEvents(type: string, func: Function | Function[]);
@@ -81,9 +59,9 @@ class Panel {
       func = toArray(func);
       const finalEventFunc: Function[] = each(func)((ope) => {
         const connectToDiagramEvent = (eve) => {
-          ope.call(this.diagram, eve);
+          ope.call(this, eve);
         };
-        this.canvasDom.addEventListener(type, connectToDiagramEvent);
+        this.dom.addEventListener(type, connectToDiagramEvent);
         return connectToDiagramEvent;
       });
       this.events[type]
@@ -95,135 +73,82 @@ class Panel {
   removeEvents(type: string) {
     const event = toArray(this.events[type]);
     each(event)((eve) => {
-      this.canvasDom.removeEventListener(type, eve);
+      this.dom.removeEventListener(type, eve);
     });
     delete this.events[type];
   }
 
-  set top(newTop: number) {
-    if (newTop !== this.position[0]) {
-      this.position[0] = newTop;
-      domOperation.setStyle(this.canvasDom, "top", this.position[0] + "px");
-    }
-  }
-  get top() {
-    return this.position[0];
-  }
-
-  set left(newLeft: number) {
-    if (newLeft !== this.position[1]) {
-      this.position[1] = newLeft;
-      domOperation.setStyle(this.canvasDom, "left", this.position[1] + "px");
-    }
-  }
-  get left() {
-    return this.position[1];
-  }
-
   set width(newWidth: number) {
-    if (newWidth !== this.canvasWidth) {
-      this.canvasWidth = newWidth;
-      domOperation.setAttr(this.canvasDom, "width", this.canvasWidth + "");
+    if (newWidth !== this._width) {
+      this._width = newWidth;
+      domOperation.setAttr(this.dom, "width", this._width + "");
     }
   }
   get width() {
-    return this.canvasWidth;
+    return this._width;
   }
 
   set height(newHeight: number) {
-    if (newHeight !== this.canvasHeight) {
-      this.canvasHeight = newHeight;
-      domOperation.setAttr(this.canvasDom, "height", this.canvasHeight + "");
+    if (newHeight !== this._height) {
+      this._height = newHeight;
+      domOperation.setAttr(this.dom, "height", this._height + "");
     }
   }
   get height() {
-    return this.canvasHeight;
+    return this._height;
   }
 
-  // 变形方法提供
-  set translateX(transX: number) {
-    if (transX !== this.transfrom.translateX) {
-      this.transfrom.translateX = transX;
-      this.transfrom.transform(this.canvasDom);
-    }
+  set parent(par: HTMLElement) {
+    par.appendChild(this.dom);
   }
-  get translateX() {
-    return this.transfrom.translateX;
+  get parent() {
+    return this.dom.parentElement;
   }
 
-  set translateY(arg: number) {
-    if (arg !== this.transfrom.translateY) {
-      this.transfrom.translateY = arg;
-      this.transfrom.transform(this.canvasDom);
-    }
-  }
-  get translateY() {
-    return this.transfrom.translateY;
+  private connectToStyle(styles: Styles) {
+    this.style = new CanvasStyle(styles);
+    this.style.subscribe();
+    Watching(this, () => {
+      this.style.setStyle(this.dom);
+    });
   }
 
-  set rotateX(arg: number) {
-    if (arg !== this.transfrom.rotateX) {
-      this.transfrom.rotateX = arg;
-      this.transfrom.transform(this.canvasDom);
-    }
-  }
-  get rotateX() {
-    return this.transfrom.rotateX;
+  private connectToClass(classes: string | string[]) {
+    this.class = new Classes(classes);
+    this.class.subscribe();
+    Watching(this, () => {
+      this.class.setClass(this.dom);
+    });
   }
 
-  set rotateY(arg: number) {
-    if (arg !== this.transfrom.rotateY) {
-      this.transfrom.rotateY = arg;
-      this.transfrom.transform(this.canvasDom);
-    }
-  }
-  get rotateY() {
-    return this.transfrom.rotateY;
-  }
-
-  set scaleX(arg: number) {
-    if (arg !== this.transfrom.scaleX) {
-      this.transfrom.scaleX = arg;
-      this.transfrom.transform(this.canvasDom);
-    }
-  }
-  get scaleX() {
-    return this.transfrom.scaleX;
-  }
-
-  set scaleY(arg: number) {
-    if (arg !== this.transfrom.scaleY) {
-      this.transfrom.scaleY = arg;
-      this.transfrom.transform(this.canvasDom);
-    }
-  }
-  get scaleY() {
-    return this.transfrom.scaleY;
-  }
-
-  sameAs(panel: Panel) {
-    this.top = panel.top;
-    this.left = panel.left;
-    this.width = panel.width;
-    this.height = panel.height;
-    this.translateX = panel.translateX;
-    this.translateY = panel.translateX;
-    this.rotateX = panel.rotateX;
-    this.rotateY = panel.rotateY;
-    this.scaleY = panel.scaleY;
-    this.scaleX = panel.scaleX;
+  private connectToTransfrom(transform: TransformAttr) {
+    this.transfrom = new Transform(transform);
+    this.transfrom.subscribe();
+    Watching(this, () => {
+      this.transfrom.setTransform(this.dom);
+    });
   }
 }
 
 export default Panel;
 
-export const CanvasForCalculate = new Panel();
+type PanelSetting = {
+  id: string;
+};
 
-export function toPanel(setting: PanelSetting) {
-  return new Panel(
-    setting.width,
-    setting.height,
-    setting.position,
-    setting.container
-  );
+class CalculatePanel {
+  canvas: Panel;
+  constructor() {
+    this.canvas = new Panel();
+  }
+
+  measureText(text: string, style: object) {
+    const ctx = this.canvas.dom.getContext("2d");
+    each(style)((val, key) => {
+      ctx[key] = val;
+    });
+    return ctx.measureText(text);
+  }
 }
+
+export const calculateCanvas = new CalculatePanel();

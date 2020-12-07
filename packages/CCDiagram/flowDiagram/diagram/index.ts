@@ -1,36 +1,27 @@
 import { each, Mapping } from "@cc/tools";
-import { Combinable, Point } from "../commonType";
-import Figure, { FigureSetting, toFigure } from "../figure/index";
-import Panel, { PanelSetting, toPanel } from "../panel/index";
+import { Combinable, Point } from "../../core_v2/commonType";
+import Figure, { FigureSetting, toFigure } from "../../core_v2/figure/index";
 import { isObject, toArray } from "lodash";
-import { AnimationOperation } from "../animation/index";
+import { AnimationOperation } from "../../core_v2/animation/index";
+import Panel from "../panel/index";
 
 export type DiagramSetting = {
-  panel: PanelSetting;
-  figure: {
-    [figureName: string]: FigureSetting;
-  };
+  [name: string]: FigureSetting;
 };
-
 /**
  * 相当于Figure与Panel的关联类，促使两者之间的关联关系。
  */
 class Diagram {
-  panel: Panel; // 创建当前Diagram的相关属性。
+  panel: Panel; // 当前Diagram的绘制画布
   figrues: Mapping<string, Figure>; // 过个图形在同一个canvas上面展示。
-  constructor(setting: DiagramSetting) {
-    this.panel = toPanel(setting.panel);
+  constructor(setting: DiagramSetting, panel: Panel | ) {
+
     this.figrues = new Mapping();
-    this.addFigure(setting.figure);
+    this.addFigure(setting);
   }
 
   addFigure(name: string, setting: FigureSetting);
-  addFigure(
-    name: {
-      [figureName: string]: FigureSetting;
-    },
-    setting?: never
-  );
+  addFigure(name: DiagramSetting, setting?: never);
   addFigure(name: Combinable, setting: Combinable) {
     if (isObject(name)) {
       each(name)((val, key) => {
