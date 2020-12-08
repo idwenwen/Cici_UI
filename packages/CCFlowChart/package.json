@@ -4,5 +4,17 @@
   "description": "'Flow charts'",
   "main": "./main.js",
   "author": "idwenwen<1095369685@qq.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "add": "yarn install",
+    "build": "tsc -d",
+    "test": "echo success"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@cc/diagram": "1.0.0",
+    "lodash": "^4.17.20"
+  }
 }
