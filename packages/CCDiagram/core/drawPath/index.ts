@@ -1,17 +1,23 @@
 import { each, Exception, Mapping } from "@cc/tools";
 import { Combinable } from "../commonType";
-import { isObject, isString } from "lodash";
-import Brush from "../brush/index";
-import { Point } from "../commonType";
-import { CanvasMatrix } from "../matrix/index";
-import Panel, { CanvasForCalculate } from "../panel/index";
+import { isObject, isString, isFunction, toArray } from "lodash";
+import Brush, { LifeCycleForBrushing } from "../brush/index";
+import Brushing from "../brush/index";
 
-export type RouteOperation = (
+// 路径绘制函数，主要用于预设当前参数内容。
+export type PathDrawing = (
   ctx: CanvasRenderingContext2D,
   parameter: object
 ) => any;
-export type RouteImply = {
-  [name: string]: RouteOperation | any;
+
+export type PathDependence = {
+  path: PathDrawing;
+  paramFilter?: {}; // 暂时作为预定义项，用于传入参数的数据首次筛选。
+};
+
+// 多条预设路径。
+export type Paths = {
+  [name: string]: PathDrawing | PathDependence;
 };
 
 /**
@@ -20,21 +26,27 @@ export type RouteImply = {
  * 2.提供参数校验功能，帮助校验传递的参数是否符合预期。
  */
 class DrawPath {
-  static PATH = new Mapping<string, RouteOperation>();
+  // 全局预定义定义Path内容，记录用户的预定义的绘制路径。
+  static PATH = new Mapping<string, PathDependence>();
 
-  static set(name: string, route: RouteOperation);
-  static set(name: RouteImply, route?: undefined);
+  // 对于全局的预定义Path方法的定义。
+  static set(name: string, route: PathDrawing | PathDependence);
+  static set(name: Paths, route?: undefined);
   static set(name: Combinable, route: Combinable) {
     if (isObject(name)) {
       each(name)((val, key) => {
         DrawPath.set(key.toString(), val);
       });
     } else {
-      DrawPath.PATH.set(name, route);
+      let content;
+      if (isFunction(route)) content = { path: route };
+      else content = route;
+      DrawPath.PATH.set(name, content);
     }
   }
 
-  static get(name: string) {
+  // 全局PATH对象的获取方法。
+  static get(name: string): PathDependence {
     const result = DrawPath.PATH.get(name);
     try {
       if (!result) {
@@ -52,42 +64,45 @@ class DrawPath {
     }
   }
 
-  drawPath: RouteOperation; // 图形绘制方法
-  matrix: CanvasMatrix; // 当前路径的变形情况。
-  constructor(drawPath?: string | RouteOperation) {
-    this.drawPath = <RouteOperation>(
+  /******************实例参数与方法 ******************/
+  drawPath: PathDependence; // 图形绘制方法 与 参数过滤条件。
+
+  constructor(drawPath?: string | PathDrawing | PathDependence) {
+    this.drawPath = <PathDependence>(
       (isString(drawPath) ? DrawPath.get(<string>drawPath) : drawPath)
     );
-    this.matrix = new CanvasMatrix();
   }
 
-  drawing(canvas: Panel, parameter: any, cb: any = {}) {
-    const _t = this;
-    const defaultCall = (ctx) => {
-      _t.matrix.transform(ctx); // 在存储之前进行变形
-    };
-    if (this.drawPath) {
-      const brush = new Brush(canvas, this.drawPath);
-      cb.beforeDraw
-        ? Array.isArray(cb.beforeDraw)
-          ? cb.beforeDraw.push(defaultCall)
-          : (cb.beforeDraw = [cb.beforeDraw, defaultCall])
-        : (cb.beforeDraw = defaultCall);
-      brush.drawing(cb, parameter);
-    }
+  drawing(
+    ctx: CanvasRenderingContext2D,
+    parameter: any,
+    lifeCycle: LifeCycleForBrushing = {}
+  ) {
+    const brush = new Brushing(ctx); // 绘制工作模板
+    const cycle = Object.assign({}, lifeCycle);
+    if (cycle.beforeSave)
+      cycle.beforeSave = [
+        ...toArray(cycle.beforeSave),
+        () => {
+          if (this.drawPath.paramFilter) {
+            // TODO: 判定当前传递对象是否符合预设要求
+          }
+        },
+      ];
+    brush.drawing(this.drawPath.path, parameter, cycle);
   }
 
   // 判定点是否在路径之中。
-  inPath(point: Point, canvas: Panel, parameter: any): boolean {
-    let inHere = false;
-    CanvasForCalculate.sameAs(canvas);
-    this.drawing(CanvasForCalculate, parameter, {
-      afterDraw: (ctx: CanvasRenderingContext2D) => {
-        inHere = ctx.isPointInPath(point[0], point[1]);
-      },
-    });
-    return inHere;
-  }
+  // inPath(point: Point, canvas: Panel, parameter: any): boolean {
+  //   let inHere = false;
+  //   CanvasForCalculate.sameAs(canvas);
+  //   this.drawing(CanvasForCalculate, parameter, {
+  //     afterDraw: (ctx: CanvasRenderingContext2D) => {
+  //       inHere = ctx.isPointInPath(point[0], point[1]);
+  //     },
+  //   });
+  //   return inHere;
+  // }
 }
 
 export default DrawPath;

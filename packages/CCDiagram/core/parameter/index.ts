@@ -1,24 +1,26 @@
 import { defNoEnum, each, remove } from "@cc/tools";
-import { Watching } from "../observing/watcher";
-import { isNil, isObject, isFunction } from "lodash";
-import Watcher from "../observing/watcher";
-import Observer from "../observing/index";
+import { Watching } from "../observer/watcher";
+import { isNil, isObject, isFunction, eq } from "lodash";
+import { Observing } from "../observer/index";
 import { Key } from "../commonType";
 import { Combinable } from "../commonType";
+import { intoFirst } from "../utils/index";
+import { acquistion } from "../config/common";
 
 /**
- * 参数对象
- * 1. 可以是订阅者，同时也可以发布者。
- * 2. 对象可以直接获取到相关的数据资源。
+ * 参数对象, 不同的参数对象之间有相关性，通过发布订阅模式进行内容的关联。
+ *
+ * 1. imply: 当前对象的订阅者代理，记录了当前对象之中的原有映射，以及反馈映射之后的结果。
+ * 2. cache: 结果缓存对象（发布者原对象的代理），可以作为下游parameter或者其他watcher的订阅对象。
  */
 class Parameter {
-  _imply: object; // 映射关系维护表
+  imply: object; // 原数据表
+  cache: object; // 最终结果对象。
 
-  _cache: object; // 最终获取到的结果。
   constructor(origin: object, context?: any) {
     defNoEnum(this, {
-      _imply: this.initWatcher(origin, context),
-      _cache: null, // 开始的时候还没有结果。
+      imply: this.initWatcher(origin, context),
+      cache: null, // 开始的时候还没有结果。
     });
   }
 
@@ -29,27 +31,49 @@ class Parameter {
    */
   private initWatcher(implying: object, context?: any) {
     return Watching(context || implying, implying, (result: object) => {
-      if (isNil(this._cache)) this._cache = {};
-      const keys = Object.keys(this._cache);
-      each(result)((val, key) => {
-        this._cache[key] = val;
-        remove(keys, (k) => k === key);
-      });
-      if (keys.length > 0) {
-        // Delete redundant variable
-        each(keys)((key) => {
-          delete this._cache[key];
+      // 初始化结果对象
+      if (isNil(this.cache)) this.cache = {};
+
+      if (this.cache instanceof Proxy) {
+        const keys = Object.keys(this.cache);
+        each(result)((val, key) => {
+          if (!eq(this.cache[key], val)) this.cache[key] = val; // 两值不相同的情况下
+          remove(keys, (k) => k === key);
         });
+        if (keys.length > 0) {
+          // 删除多余的展示内容。
+          each(keys)((key) => {
+            delete this.cache[key];
+          });
+        }
+      } else {
+        this.cache = result;
       }
     });
   }
 
   /**
-   * 当前对象作为订阅者，订阅传递的发布内容。
+   * 更新当前parameter依据的上下文环境。
    * @param para 发布对象
    */
-  watching(para?: Parameter) {
-    para.subscribe(this._imply["origin"]);
+  booking(para?: Parameter) {
+    para.subscribe(this.imply);
+  }
+
+  notifier() {
+    if (!(this.cache instanceof Proxy)) {
+      // 当前cache作为变动关联上游。
+      this.cache = Observing(this.cache);
+    }
+  }
+
+  /**
+   * 确定下游变动 或者 组装当前cache为发布者。
+   * @param watcher 订阅对象订阅可观察者
+   */
+  subscribe(watcher?: object) {
+    this.notifier();
+    watcher && (watcher["context$"] = this.cache); // 修改订阅内容的相关上下文环境。
   }
 
   /**
@@ -57,53 +81,33 @@ class Parameter {
    * @param key 对应字段
    * @param imply 字段新参数
    */
-  implyUpdate(key: string, imply: any);
-  implyUpdate(key: object | Function, imply?: never);
-  implyUpdate(key: Combinable, imply: Combinable) {
-    let updated;
+  represent(key: string, imply: any);
+  represent(key: object | Function, imply?: never);
+  represent(key: Combinable, imply: Combinable) {
     if (isObject(key) || isFunction(key)) {
-      this._imply["_getter"] = key;
+      this.imply["represent$"] = key;
     } else {
-      this._imply[key] = imply;
+      this.imply[key] = imply;
     }
-    this._imply["origin"].getterUpdate(updated);
-  }
-
-  /**
-   * 订阅者更新observer
-   * @param watcher 订阅对象订阅可观察者
-   */
-  subscribe(watcher: Watcher) {
-    if (!(this._cache instanceof Proxy)) {
-      // 说明当前的_cache没有被代理，即当前对象不可被订阅
-      this._cache = new Observer(this._cache).obsever;
-    }
-    watcher.contextUpdate(this._cache);
   }
 }
 
 export function toParameter(origin: object, context?: any) {
   const parameter = new Parameter(origin, context);
-  const handlers = {
+  const CustomHandler = {
     set(target: Parameter, key: Key, value: any) {
-      if (key.toString().search("origin.") >= 0) {
-        // origin.开始的key对Parameter本身进行操作，否则对_imply进行操作。
-        return (target[key.toString().replace("origin.", "")] = value);
-      } else {
-        return (target._imply[key] = value);
-      }
+      return (target.imply[key] = value); // 默认情况调用当前imply对象对当前的映射进行设置。
     },
     get(target: Parameter, key: Key) {
-      if (key.toString() === "origin") {
-        // key为origin的时候返回parameter实例
-        return target;
-      } else if (key.toString() === "_cache") {
-        return target._cache;
+      const IMPLY = "imply$";
+      if (intoFirst(key, IMPLY + ".")) {
+        // 当前情况返回原有的映射关系内容
+        return target.imply[key.toString().replace(IMPLY + ".", "")];
       } else {
-        // 返回当前的_cache之中的内容。
-        return target._cache[key];
+        // 默认情况下返回原有的数据内容。
+        return target.cache[key];
       }
     },
   };
-  return new Proxy(parameter, handlers);
+  return acquistion(parameter, CustomHandler);
 }

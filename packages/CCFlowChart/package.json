@@ -1,0 +1,8 @@
+{
+  "name": "@cc/flowchart",
+  "version": "1.0.0",
+  "description": "'Flow charts'",
+  "main": "./main.js",
+  "author": "idwenwen<1095369685@qq.com>",
+  "license": "MIT"
+}

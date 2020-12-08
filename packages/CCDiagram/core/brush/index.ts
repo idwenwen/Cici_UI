@@ -1,9 +1,8 @@
 import { each } from "@cc/tools";
 import { Callback } from "../commonType";
 import { toArray } from "lodash";
-import Panel from "../panel/index";
 
-type CallbackList = {
+export type LifeCycleForBrushing = {
   beforeSave?: Callback | Callback[];
   beforeDraw?: Callback | Callback[];
   afterDraw?: Callback | Callback[];
@@ -11,18 +10,19 @@ type CallbackList = {
 };
 
 /**
- * 帮助绘制的相关工具函数
- * 1. 主要是canvas的相关信息内容
+ * 绘制过程对象，提供绘制前后的准备，收尾工作与常用的绘制方式。
  */
-class Brush {
-  panel: Panel;
+class Brushing {
   ctx: CanvasRenderingContext2D;
-  drawPath: Function;
-  constructor(canvas: Panel, drawPath: Function) {
-    this.panel = canvas;
-    this.ctx = canvas.canvasDom.getContext("2d");
-    this.drawPath = drawPath;
+
+  /**
+   * 创建绘制过程，。
+   * @param ctx 绘制原料
+   */
+  constructor(ctx: CanvasRenderingContext2D) {
+    this.ctx = ctx;
   }
+
   save() {
     this.ctx.save();
     return this;
@@ -63,22 +63,38 @@ class Brush {
 
   private call(cb?: Callback | Callback[]) {
     if (cb) {
+      // 存在当前函数则调用。
       cb = toArray(cb);
       each(cb)((val) => {
-        val.call(this, this.ctx);
+        val(this.ctx);
       });
     }
   }
 
-  drawing(cb: CallbackList, parameter: any) {
-    this.call(cb.beforeSave);
-    this.save();
-    this.call(cb.beforeSave); // 绘制钱回调函数
-    this.drawPath.call(this, this.ctx, parameter, this.panel);
-    this.call(cb.afterDraw); // 绘制后回调函数
-    this.restore();
-    this.call(cb.afterRestore);
+  /**
+   * 图像绘制工作整体流程
+   * @param path 绘制方法
+   * @param parameter 绘制所需参数
+   * @param custom 自定义预设工作流程
+   */
+  drawing(path: Function, parameter: any, customProcess: LifeCycleForBrushing) {
+    try {
+      // 当当前回调之中有出现报错, 则当前绘制将会自动终止。
+      this.call(customProcess.beforeSave); // 存储先的预设工作
+      this.save();
+      this.call(customProcess.beforeSave); // 绘制钱的预设工作
+
+      this.beginPath(); // 路径绘制开始
+      path.call(this, this.ctx, parameter); // 路径绘制
+      this.closePath(); // 路径绘制结束
+
+      this.call(customProcess.afterDraw); // 绘制后回调函数
+      this.restore();
+      this.call(customProcess.afterRestore);
+    } finally {
+      void 0;
+    }
   }
 }
 
-export default Brush;
+export default Brushing;

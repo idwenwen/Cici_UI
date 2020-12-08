@@ -2,23 +2,26 @@ import Player from "./player";
 import { Duration } from "../../commonType";
 import Progress, { RateCurve } from "../progress";
 import { UUID } from "@cc/tools";
-import { CanBeActable, Variation } from "./declare";
+import { Actable, Variation } from "./declare";
 
 /**
- * 当前内容表示的是单格的动作内容
+ * 当前内容表示的是单个的动作变化内容。
  */
 class Action extends Player {
-  progressing: Progress; // 当前action的运行进度。
-  time: Duration; // 动作运行时长
-  variation: Variation; // 步骤函数。
+  progressing: Progress; // 当前action的运行进度计算方法。
+  time: Duration; // 动作运行时长。
+  variation: Variation; // 变换函数。
+
   constructor(
-    context: any,
-    name: string,
+    context: any, // 上下文环境
+    name: string, // 动作标识
+
     variation: Variation,
     time: Duration,
     progress?: string | RateCurve,
-    times: number = 1,
-    repeat: boolean = false
+
+    times: number = 1, // 默认播放倍数为1
+    repeat: boolean = false // 默认当前动作不重复
   ) {
     super(context, name, repeat, times);
     this.variation = variation;
@@ -27,7 +30,7 @@ class Action extends Player {
   }
 
   act(...meta: any[]) {
-    return this.play((current: Duration) => {
+    return this.loading((current: Duration) => {
       return !!this.variation.call(
         this._context,
         this.progressing.progress(current, this.time),
@@ -39,8 +42,10 @@ class Action extends Player {
 
 export default Action;
 
+// 单帧动作内容唯一标识。
 const RandomIdForOneTimeAction = new UUID((index) => `once_${index}`);
-export function assignment(context: any, operation: Function) {
+// 创建单帧动作
+export function once(context: any, operation: Function) {
   new Action(
     context,
     RandomIdForOneTimeAction.get().toString(),
@@ -53,8 +58,10 @@ export function assignment(context: any, operation: Function) {
   ).act();
 }
 
+// 一次性特定动作内容标识
 const randomIdForAction = new UUID((index) => `Action_${index}`);
-export function toAction(act: CanBeActable) {
+// 配置文件转换称为动作对象。
+export function toAction(act: Actable) {
   return new Action(
     act.context,
     act.name || randomIdForAction.get().toString(),

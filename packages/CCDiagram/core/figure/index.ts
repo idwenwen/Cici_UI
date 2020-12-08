@@ -1,23 +1,31 @@
-import { each, Tree } from "@cc/tools";
+import { defNoEnum, each, Exception, remove, Tree } from "@cc/tools";
 import { Combinable, Point } from "../commonType";
-import Diagram from "../diagram/index";
-import DrawPath, { RouteImply, RouteOperation } from "../drawPath/index";
-import { isString } from "lodash";
+import DrawPath, {
+  PathDependence,
+  PathDrawing,
+  Paths,
+} from "../drawPath/index";
+import { isObject, isFunction, toArray } from "lodash";
 import Events, { EventOperations } from "../events/index";
 import Animate, {
   animateSetting,
   AnimationOperation,
 } from "../animation/index";
 import { toParameter } from "../parameter/index";
-import Panel from "../panel/index";
-import Watcher, { Watching } from "../observing/watcher";
+import { Watching } from "../observer/watcher";
+import { is } from "../utils/index";
+import { acquistion } from "../config/common";
+import Progress from "../controller/progress";
+import Transform from "../Transform/index";
+import Diagram, { DiagramFigure } from "../diagram/index";
 
 export type FigureSetting = {
-  parameter: RouteImply;
-  path?: string | RouteOperation;
+  parameter: Paths;
+  path?: string | PathDrawing; // 当前层可以没有相关的路径绘制参数
   events?: EventOperations;
   animate?: animateSetting;
   children?: FigureSetting[];
+  diagram?: Diagram | DiagramFigure | (Diagram | DiagramFigure)[];
 };
 
 export enum AnimationExtension {
@@ -26,108 +34,178 @@ export enum AnimationExtension {
 }
 
 class Figure extends Tree {
-  drawPath: DrawPath; // 表示的是当前绘制路径内容。
-  parameter: any; //
-  belongTo: Diagram; // 表示当前图形属于那一块图表。
+  static Progress = Progress; // 提供设置接口
+  static Path = DrawPath; // 提供设置接口
+
+  _display: boolean; // 当前figure是否展示。
+  drawPath?: DrawPath; // 表示的是当前绘制路径内容。
+
+  // 当前绘制路径变形设置。
+  transform?: Transform;
+  parameter: any; // 相关的对象内容。
   events: Events;
   animation: Animate;
 
+  diagram: Diagram[];
+
   constructor(
-    imply: RouteImply,
-    path?: string | RouteOperation, // 当前内容不一定存在path内容。
+    imply: object, //映射列表
+    path?: string | PathDrawing | PathDependence, // 当前内容不一定存在path内容。
     events?: EventOperations,
     animate?: animateSetting,
+    diagram?: Diagram | DiagramFigure | (Diagram | DiagramFigure)[],
+
     parent?: Figure,
-    children?: Figure | Figure[]
+    children?: Figure | Figure[],
+
+    display: boolean = true
   ) {
     super(parent, children);
-    this.drawPath = new DrawPath(path);
-    // 获取parameter的相关上下文内容。
-    this.contextUpdated(imply);
-    // proxy给当前对象，方便用户获取需要的数据。并且判断inPath的情况。
-    const proxy = this.contextProxy();
+    defNoEnum(this, {
+      _display: display,
+    });
+    this.drawPath = path ? new DrawPath(path) : null;
+    // 新增parameter内容，关联上下文内容
+    this.connection(imply);
+
+    const proxy = this.figureProxy();
     this.events = new Events(proxy, events);
     this.animation = new Animate(proxy, animate);
+    this.diagram = [];
+    this.addDiagram(diagram);
   }
 
+  /****************diagram 关系的维护 *****************************/
+  addDiagram(dia: DiagramFigure | Diagram | (DiagramFigure | Diagram)[]) {
+    each(toArray(dia))((val) => {
+      if (
+        val instanceof Diagram &&
+        !this.diagram.find((item) => item.uuid === val.uuid)
+      ) {
+        this.diagram.push(val);
+      } else if (!(val instanceof Diagram)) {
+        val = new Diagram(val);
+        this.diagram.push(val);
+      }
+    });
+  }
+
+  removeDiagram(uuid: string | string[]) {
+    const idList = toArray(uuid);
+    remove(this.diagram, (dia) => idList.find((id) => dia.uuid === id));
+  }
+
+  /****************parameter 相关操作与关联关系 ********************/
+  // 更新或者创建parameter内容。
+  connection(implying?: object | Function) {
+    const context = this.parent.parameter; // 自动与上层的parameter相关联
+    if (this.parameter) {
+      this.parameter["context$"] = context; // 更新当前的上下文环境 如果有改变的话。
+    } else {
+      // 生成新的parameter对象内容
+      this.parameter = toParameter(implying, context);
+      // 监听当前parameter的变动，并依据变动添加当前内容到绘制列表之中
+      this.parameter["origin"].subscribe(
+        Watching(
+          this.parameter,
+          () => {
+            Object.keys(this); // 调用一下代理的和获取方法，绑定当前watcher内容。
+            return this;
+          },
+          (_result) => {
+            // 需要将当前figure变动通知相关的diagram。
+            if (this.diagram.length > 0) {
+              each(this.diagram)((val) => {
+                val.updated();
+              });
+            }
+          }
+        )
+      );
+    }
+  }
+
+  // 更新当前Figure的参数映射内容
+  represent(name: string, value: any);
+  represent(name: object | Function, value?: undefined);
+  represent(name: Combinable, value: Combinable) {
+    if (isObject(name)) {
+      each(name)((val, key) => {
+        this.parameter[key] = val;
+      });
+    } else if (isFunction(name)) {
+      this.parameter["represent$"] = name;
+    } else {
+      this.parameter[name] = value;
+    }
+  }
+
+  /***************************当前对象层级关系设置 **********************/
+  // 设置父节点，并更新parameter的相关参数。
   set parent(newValue: Figure) {
     super.parent = newValue;
-    this.contextUpdated();
-  }
-
-  set context(newContext: Diagram) {
-    this.belongTo = newContext;
-  }
-
-  get context() {
-    return this.belongTo;
+    this.connection();
   }
 
   // 代理方法,开放指定的相关参数给到调用方，限制接口展示方便获取。
-  private contextProxy() {
-    const handler = {
+  private figureProxy() {
+    const CustomerHandler = {
       set(target: Figure, key: string, value: any) {
         return (target.parameter[key] = value);
       },
       get(target: Figure, key: string) {
-        if (key === "isPointInPath") {
-          return (point: Point, canvas?: Panel) => {
-            target.drawPath.inPath(
-              point,
-              canvas || target.belongTo.panel,
-              target.parameter
-            );
+        if (is(key, "isPointInFigure")) {
+          return (point: Point, ctx: CanvasRenderingContext2D) => {
+            return target.isPointInFigure(point, ctx);
           };
         } else {
           return target.parameter[key];
         }
       },
     };
-    return new Proxy(this, handler);
+    return acquistion(this, CustomerHandler);
   }
 
-  // 更新watcher之中的上下文内容。
-  contextUpdated(implying?: object | Function) {
-    const context = this.parent.parameter;
-    if (this.parameter) {
-      this.parameter["_context"] = context;
-    } else {
-      this.parameter = toParameter(implying, context);
-      const watcher = Watching(
-        null,
-        () => {
-          Object.keys(this);
-          return this;
-        },
-        (_res) => {
-          this.belongTo.needToDraw();
-        }
-      );
-      this.parameter["origin"].subscribe();
+  set display(showing: boolean) {
+    // 当前节点与子节点全部隐藏
+    if (showing !== this.display) {
+      this.notify(() => {
+        this._display = showing;
+      }, false);
     }
   }
 
-  // 映射表更新。
-  implyUpdated(implying: object | Function) {
-    this.parameter.implyUpdate(implying);
+  get display() {
+    return this._display;
   }
 
-  implyUpdate(name: string, value: any);
-  implyUpdate(name: object | Function, value?: undefined);
-  implyUpdate(name: Combinable, value: Combinable) {
-    let up;
-    if (isString(name)) up = { [name]: value };
-    else up = name;
-    this.implyUpdated(up); // 更新映射关系。
+  isPointInFigure(point: Point, ctx: CanvasRenderingContext2D) {
+    let result = false;
+    this.notify(() => {
+      if (this.drawPath && this.display)
+        this.drawPath.drawing(ctx, this.parameter, {
+          afterDraw: (ctxx: CanvasRenderingContext2D) => {
+            result = ctxx.isPointInPath(point[0], point[1]);
+            if (result)
+              throw new Exception(
+                "PointInPath",
+                "Breaking current iteration",
+                Exception.level.Info,
+                false
+              );
+          },
+        });
+    }, false);
   }
 
-  // 从diagram处获取到绘制容器panel并绘制当前的内容。
-  drawing(canvas?: Panel) {
+  // 传递画笔并绘制当前内容，树的层级越高，绘制的层级也相对越高。
+  drawing(ctx: CanvasRenderingContext2D) {
     // 以广度遍历的形式从下往上绘制内容。
-    const container = canvas || this.belongTo.panel; // 获取当前绘制的canvas节点。
     this.notify(
       () => {
-        this.drawPath.drawing(container, this.parameter); // 当前节点的绘制
+        this.display &&
+          this.drawPath &&
+          this.drawPath.drawing(ctx, this.parameter); // 当前节点的绘制
       },
       true,
       false,
@@ -137,6 +215,7 @@ class Figure extends Tree {
 
   // 开始动画操作。
   animationOperation(operation: AnimationOperation | AnimationExtension) {
+    // 当且仅当operation为add的时候name才可能是animateSetting的类型。
     return (name: string | animateSetting, ...meta: any[]) => {
       if (operation in AnimationOperation) {
         this.notify(
@@ -170,17 +249,18 @@ class Figure extends Tree {
 
 export default Figure;
 
-export function toFigure(setting: FigureSetting, context?: Diagram) {
+// 依据获取内容。
+export function toFigure(setting: FigureSetting) {
   const figure = new Figure(
     setting.parameter,
     setting.path,
     setting.events,
-    setting.animate
+    setting.animate,
+    setting.diagram
   );
-  context && (figure.context = context);
   if (setting.children && setting.children.length > 0) {
     each(setting.children)((set) => {
-      figure.child = toFigure(set, context);
+      figure.child = toFigure(set);
     });
   }
   return figure;
