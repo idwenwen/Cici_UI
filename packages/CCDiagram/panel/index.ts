@@ -141,25 +141,52 @@ class Panel {
   private connectToStyle(styles: Styles) {
     this.style = new CanvasStyle(styles);
     this.style.subscribe();
-    Watching(this, () => {
-      this.style.setStyle(this.dom);
-    });
+    Watching(
+      this,
+      () => {
+        this.style.setStyle(this.dom);
+      },
+      () => {
+        // 当前内容变动将会影响到diagram之中的样式内容。
+        each(this.diagram)((val) => {
+          val.updated();
+        });
+      }
+    );
   }
 
   private connectToClass(classes: string | string[]) {
     this.class = new Classes(classes);
     this.class.subscribe();
-    Watching(this, () => {
-      this.class.setClass(this.dom);
-    });
+    Watching(
+      this,
+      () => {
+        this.class.setClass(this.dom);
+      },
+      () => {
+        // 当前内容变动将会影响到diagram之中的样式内容。
+        each(this.diagram)((val) => {
+          val.updated();
+        });
+      }
+    );
   }
 
   private connectToTransfrom(transform: TransformAttr) {
     this.transfrom = new Transform(transform);
     this.transfrom.subscribe();
-    Watching(this, () => {
-      this.transfrom.setTransform(this.dom);
-    });
+    Watching(
+      this,
+      () => {
+        this.transfrom.setTransform(this.dom);
+      },
+      () => {
+        // 当前内容变动将会影响到diagram之中的样式内容。
+        each(this.diagram)((val) => {
+          val.updated();
+        });
+      }
+    );
   }
 }
 

@@ -1,5 +1,5 @@
 import { each, Exception, Mapping, Middleware } from "@cc/tools";
-import { Duration } from "packages/CCDiagram/core/commonType";
+import { Duration } from "../commonType";
 import { Playable } from "./action/declare";
 import { player } from "./action/player";
 import renderController from "./drawing";

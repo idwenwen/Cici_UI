@@ -1,6 +1,6 @@
 import { domOperation, remove } from "@cc/tools";
 import { toArray } from "lodash";
-import { Observing } from "packages/CCDiagram/core/observer/index";
+import { Observing } from "../observer/index";
 
 /**
  * dom节点样式表内容。

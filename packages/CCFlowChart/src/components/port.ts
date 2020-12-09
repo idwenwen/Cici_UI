@@ -14,6 +14,7 @@ class Port {
   type: portType; // 当前接口的类型
   name: string; // 当前端口的名称
   tip: string; // 当前标识
+  multiple: boolean; // 是否是多入口
   component: Components; // 当前端口属于的组件
 
   constructor(

@@ -1,7 +1,7 @@
 import { domOperation, each } from "@cc/tools";
-import { Combinable } from "packages/CCDiagram/core/commonType";
+import { Combinable } from "../commonType";
 import { isObject, eq, toArray } from "lodash";
-import { Observing } from "packages/CCDiagram/core/observer/index";
+import { Observing } from "../observer/index";
 
 export type Styles = {
   [str: string]: string;

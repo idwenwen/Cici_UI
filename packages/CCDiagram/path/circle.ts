@@ -1,4 +1,4 @@
-import { toRadian } from "./util";
+import { toRadian } from "../utils/index";
 
 export default {
   name: "circle",

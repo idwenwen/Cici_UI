@@ -1,7 +1,7 @@
-import { define, domOperation, each } from "@cc/tools";
+import { domOperation, each } from "@cc/tools";
 import { eq } from "lodash";
-import { Observing } from "packages/CCDiagram/core/observer/index";
-import { toRadian } from "packages/CCDiagram/core/path/util";
+import { Observing } from "../observer/index";
+import { toRadian } from "../utils/index";
 
 /**
  * Dom内容transform相关属性的设置。

@@ -52,7 +52,7 @@ class Events {
   }
 
   // 事件触发。
-  dispatch(name: string, point: Point, ...meta: any[]) {
+  dispatch(name: string, ...meta: any[]) {
     try {
       let eve = this.eventsList.get(name); // 获取当前时间函数
       if (!eve) {
@@ -69,7 +69,7 @@ class Events {
         // 设置当前转变到心跳函数之中，进行同步操作。
         eve = toArray(eve);
         each(eve)((func: EventNode, index) => {
-          func.event.call(this.context, point, ...meta);
+          func.event.call(this.context, ...meta);
           if (func.once) willRemove.push(index);
         });
         remove(eve, (_item, index) => {

@@ -6,8 +6,11 @@
   "license": "MIT",
   "scripts": {
     "add": "yarn add",
-    "build": "tsc",
-    "test": "echo success"
+    "build:dev": "webpack --mode development",
+    "build": "webpack --mode production",
+    "test": "echo success",
+    "start:dev": "webpack-dev-server",
+    "dev": "webpack serve --inline --progress --config webpack.config.js"
   },
   "publishConfig": {
     "access": "public"

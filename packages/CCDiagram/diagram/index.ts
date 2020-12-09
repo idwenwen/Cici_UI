@@ -4,7 +4,7 @@ import Figure, { FigureSetting, toFigure } from "../figure/index";
 import { isObject, toArray } from "lodash";
 import { AnimationOperation } from "../animation/index";
 import Panel, { PanelSetting } from "../panel/index";
-import { toPanel } from "packages/CCDiagram/core/panel/index";
+import { toPanel } from "../panel/index";
 import renderController, { Drawable } from "../controller/drawing";
 
 export type DiagramFigure = {
@@ -17,42 +17,29 @@ const DiagramId = new UUID((index) => `Diagram_${index}`);
  */
 class Diagram {
   uuid: string;
-  panel: Panel[]; // 当前Diagram的绘制画布
+  panel: Panel; // 当前Diagram的绘制画布
   figrues: Mapping<string, Figure>; // 过个图形在同一个canvas上面展示。
-  constructor(
-    setting: DiagramFigure,
-    panel?: Panel | PanelSetting | (Panel | PanelSetting)[]
-  ) {
+  constructor(setting: DiagramFigure, panel?: Panel | PanelSetting) {
     this.uuid = DiagramId.get().toString();
     this.figrues = new Mapping();
     this.addFigure(setting);
-    this.panel = [];
-    this.addPanel(panel);
+    this.setPanel(panel);
   }
 
   /********************panel的相关观察 ****************/
-  addPanel(panel: Panel | PanelSetting | (Panel | PanelSetting)[]) {
-    const list = each(toArray(panel))((pan) => {
-      if (!(pan instanceof Panel)) {
-        pan.diagram
-          ? (!Array.isArray(pan.diagram)
-              ? (pan.diagram = toArray(pan.diagram))
-              : void 0,
-            pan.diagram.push(this))
-          : (pan.diagram = this);
-        pan = toPanel(pan);
-      }
-      return pan;
-    });
-    // 删除已经添加了的画布内容。
-    remove(list, (item) => this.panel.find((pan) => pan.uuid === item.uuid));
-    each(list)((pan) =>
-      renderController.render(new Drawable(pan, this.drawing))
-    ); // 为新添加的panel绘制初始图片。
-  }
-
-  removePanel(uuid: string | string[]) {
-    remove(toArray(uuid), (id) => this.panel.find((item) => item.uuid === id));
+  setPanel(panel: Panel | PanelSetting) {
+    if (!(panel instanceof Panel)) {
+      panel.diagram
+        ? (!Array.isArray(panel.diagram)
+            ? (panel.diagram = toArray(panel.diagram))
+            : void 0,
+          // @ts-ignore
+          panel.diagram.push(this))
+        : (panel.diagram = this);
+      panel = toPanel(panel);
+    }
+    this.panel = panel;
+    renderController.render(new Drawable(this.panel.dom, this.drawing));
   }
 
   /********************Figure内容管理与联动 ***********/
@@ -64,7 +51,9 @@ class Diagram {
         this.addFigure(key, val);
       });
     } else {
-      this.figrues.set(name, toFigure(setting));
+      const figureTree = toFigure(setting); // Figure设置
+      figureTree.connection(null, this.panel); // 将当前首个figure内容连接到panel本身数据内容。
+      this.figrues.set(name, figureTree);
     }
   }
 
@@ -88,9 +77,9 @@ class Diagram {
 
   // 事件触发。
   dispatchEvent(name?: string | string[]) {
-    return (events: string, point: Point, ...meta: any[]) => {
+    return (events: string, ...meta: any[]) => {
       this.excute((fig: Figure) => {
-        fig.dispatchEvents(events, point, ...meta);
+        fig.dispatchEvents(events, ...meta);
       }, name);
     };
   }

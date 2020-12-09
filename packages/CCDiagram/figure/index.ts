@@ -1,10 +1,6 @@
 import { defNoEnum, each, Exception, remove, Tree } from "@cc/tools";
 import { Combinable, Point } from "../commonType";
-import DrawPath, {
-  PathDependence,
-  PathDrawing,
-  Paths,
-} from "../drawPath/index";
+import DrawPath, { PathDependence, PathDrawing } from "../drawPath/index";
 import { isObject, isFunction, toArray } from "lodash";
 import Events, { EventOperations } from "../events/index";
 import Animate, {
@@ -18,9 +14,10 @@ import { acquistion } from "../config/common";
 import Progress from "../controller/progress";
 import Transform from "../Transform/index";
 import Diagram, { DiagramFigure } from "../diagram/index";
+import { calculateCanvas } from "../panel/index";
 
 export type FigureSetting = {
-  parameter: Paths;
+  parameter: object;
   path?: string | PathDrawing; // 当前层可以没有相关的路径绘制参数
   events?: EventOperations;
   animate?: animateSetting;
@@ -97,8 +94,8 @@ class Figure extends Tree {
 
   /****************parameter 相关操作与关联关系 ********************/
   // 更新或者创建parameter内容。
-  connection(implying?: object | Function) {
-    const context = this.parent.parameter; // 自动与上层的parameter相关联
+  connection(implying?: object | Function, context?: object) {
+    context = context || this.parent.parameter; // 自动与上层的parameter相关联
     if (this.parameter) {
       this.parameter["context$"] = context; // 更新当前的上下文环境 如果有改变的话。
     } else {
@@ -155,8 +152,9 @@ class Figure extends Tree {
       },
       get(target: Figure, key: string) {
         if (is(key, "isPointInFigure")) {
-          return (point: Point, ctx: CanvasRenderingContext2D) => {
-            return target.isPointInFigure(point, ctx);
+          return (point: Point, ctx?: CanvasRenderingContext2D) => {
+            const context = ctx || calculateCanvas.canvas.dom.getContext("2d");
+            return target.isPointInFigure(point, context);
           };
         } else {
           return target.parameter[key];
@@ -214,7 +212,9 @@ class Figure extends Tree {
   }
 
   // 开始动画操作。
-  animationOperation(operation: AnimationOperation | AnimationExtension) {
+  animationOperation(
+    operation: AnimationOperation | AnimationExtension | string
+  ) {
     // 当且仅当operation为add的时候name才可能是animateSetting的类型。
     return (name: string | animateSetting, ...meta: any[]) => {
       if (operation in AnimationOperation) {
@@ -235,10 +235,10 @@ class Figure extends Tree {
   }
 
   // 事件触发。
-  dispatchEvents(name: string, point: Point, ...meta: any[]) {
+  dispatchEvents(name: string, ...meta: any[]) {
     this.notify(
       () => {
-        this.events.dispatch(name, point, ...meta);
+        this.events.dispatch(name, ...meta);
       },
       false,
       false,
