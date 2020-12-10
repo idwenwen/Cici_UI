@@ -3,8 +3,13 @@ import circle from "./circle";
 import curve from "./curve";
 import rect from "./rect";
 import text from "./text";
+import icon from "./icon";
+import { each } from "@cc/tools";
 
-Figure.Path.set(circle.name, circle.draw);
-Figure.Path.set(curve.name, circle.draw);
-Figure.Path.set(rect.name, rect.draw);
-Figure.Path.set(text.name, text.draw);
+const pathList = [circle, curve, rect, text, icon];
+
+((pathList) => {
+  each(pathList)((val) => {
+    Figure.Path.set(val.name, val.draw);
+  });
+})(pathList);

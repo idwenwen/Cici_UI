@@ -15,7 +15,7 @@ export class Drawable {
 }
 
 class Render {
-  static between = 50;
+  static between = 80;
   willDraw: Drawable[];
 
   constructor() {

@@ -1,7 +1,8 @@
 import Port from "./port";
 import { each, Exception, Mapping } from "@cc/tools";
 import { Diagram } from "@cc/diagram";
-import { portConfig } from "./portConfig";
+import { portConfig } from "./ports/portConfig";
+import PanelManager from "./panel";
 
 // 组件状态
 export enum ComponentsStatus {
@@ -29,8 +30,6 @@ class GlobalComponentsManage {
 export const globalComponents = new GlobalComponentsManage();
 
 class Components {
-  static width: number = 400;
-  static height: number = 150;
   name: string; // 当前组件的名称
   type: string; // 组件类型
   status: ComponentsStatus;
@@ -40,17 +39,17 @@ class Components {
   inputPort: Port[]; // 当前组件入口。
   outputPort: Port[]; // 当前组件出口。
 
-  diagram: Diagram;
+  panel: PanelManager;
   constructor(
     type: string, // 组件类型
     status: string, // 当前组件的状态
     disable: boolean, // 当前组件是否是不需要运行的。
 
-    name?: string,
-    role?: string,
+    name?: string, // 当前组件名称
+    role?: string, // 当前组件针对的角色
 
-    singlePort: boolean = false,
-    multiple: boolean = false
+    singlePort: boolean = false, // 是否为单端口形式
+    multiple: boolean = false // 是否可以多次连接。
   ) {
     this.name = name || globalComponents.getDefaultName(type);
     this.type = type;
@@ -116,30 +115,6 @@ class Components {
       input,
       output,
     };
-  }
-
-  /**
-   * 获取当前panel默认展示长宽
-   * @param times 当前整体展示内容的倍数
-   */
-  private panelSetting(times: number, style: object, transfrom: object) {
-    return {
-      id: this.name,
-      width: Components.width * times,
-      height: Components.height * times,
-      style: Object.assign(
-        {
-          position: "absolute",
-        },
-        style
-      ),
-      transfrom,
-    };
-  }
-
-  private DiagramSetting() {
-    const setting = [];
-    each(this.inputPort)();
   }
 
   // 组件连接接入

@@ -32,7 +32,7 @@ class Action extends Player {
   act(...meta: any[]) {
     return this.loading((current: Duration) => {
       return !!this.variation.call(
-        this._context,
+        this.context,
         this.progressing.progress(current, this.time),
         ...meta
       );

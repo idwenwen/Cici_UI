@@ -6,6 +6,12 @@ import { Key } from "../commonType";
 import { Combinable } from "../commonType";
 import { intoFirst } from "../utils/index";
 import { acquistion } from "../config/common";
+import {
+  CacheWord,
+  ContextWord,
+  ImplyWord,
+  RepresentWord,
+} from "../config/keyWord";
 
 /**
  * 参数对象, 不同的参数对象之间有相关性，通过发布订阅模式进行内容的关联。
@@ -73,7 +79,7 @@ class Parameter {
    */
   subscribe(watcher?: object) {
     this.notifier();
-    watcher && (watcher["context$"] = this.cache); // 修改订阅内容的相关上下文环境。
+    watcher && (watcher[ContextWord] = this.cache); // 修改订阅内容的相关上下文环境。
   }
 
   /**
@@ -85,7 +91,7 @@ class Parameter {
   represent(key: object | Function, imply?: never);
   represent(key: Combinable, imply: Combinable) {
     if (isObject(key) || isFunction(key)) {
-      this.imply["represent$"] = key;
+      this.imply[RepresentWord] = key;
     } else {
       this.imply[key] = imply;
     }
@@ -96,10 +102,15 @@ export function toParameter(origin: object, context?: any) {
   const parameter = new Parameter(origin, context);
   const CustomHandler = {
     set(target: Parameter, key: Key, value: any) {
-      return (target.imply[key] = value); // 默认情况调用当前imply对象对当前的映射进行设置。
+      const IMPLY = CacheWord;
+      if (intoFirst(key, IMPLY + ".")) {
+        return (target.cache[key.toString().replace(IMPLY + ".", "")] = value);
+      } else {
+        return (target.imply[key] = value); // 默认情况调用当前imply对象对当前的映射进行设置。
+      }
     },
     get(target: Parameter, key: Key) {
-      const IMPLY = "imply$";
+      const IMPLY = ImplyWord;
       if (intoFirst(key, IMPLY + ".")) {
         // 当前情况返回原有的映射关系内容
         return target.imply[key.toString().replace(IMPLY + ".", "")];

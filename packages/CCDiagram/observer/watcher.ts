@@ -6,6 +6,7 @@ import { eq } from "lodash";
 import { into, intoFirst, is } from "../utils/index";
 import { acquistion } from "../config/common";
 import Observer from "./index";
+import { ContextWord, RepresentWord } from "../config/keyWord";
 
 // 唯一ID
 const WatcherId = new UUID();
@@ -213,8 +214,8 @@ export function Watching(
     },
 
     set(target: Watcher, key: Key, value: any) {
-      const CONTEXT = "context$";
-      const GETTER = "represent$";
+      const CONTEXT = ContextWord;
+      const GETTER = RepresentWord;
 
       if (is(key, CONTEXT)) {
         // 修改上下文内容。

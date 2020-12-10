@@ -23,6 +23,7 @@ export type FigureSetting = {
   animate?: animateSetting;
   children?: FigureSetting[];
   diagram?: Diagram | DiagramFigure | (Diagram | DiagramFigure)[];
+  display?: boolean;
 };
 
 export enum AnimationExtension {
@@ -51,11 +52,10 @@ class Figure extends Tree {
     events?: EventOperations,
     animate?: animateSetting,
     diagram?: Diagram | DiagramFigure | (Diagram | DiagramFigure)[],
+    display: boolean = true,
 
     parent?: Figure,
-    children?: Figure | Figure[],
-
-    display: boolean = true
+    children?: Figure | Figure[]
   ) {
     super(parent, children);
     defNoEnum(this, {
@@ -85,11 +85,23 @@ class Figure extends Tree {
         this.diagram.push(val);
       }
     });
+    // 当前子节点进行diagram的添加, 父节点的
+    each(this.children)((child) => {
+      child.addDiagram(this.diagram);
+    });
   }
 
   removeDiagram(uuid: string | string[]) {
     const idList = toArray(uuid);
     remove(this.diagram, (dia) => idList.find((id) => dia.uuid === id));
+  }
+
+  notifyDiagram() {
+    if (this.diagram.length > 0) {
+      each(this.diagram)((val) => {
+        val.updated();
+      });
+    }
   }
 
   /****************parameter 相关操作与关联关系 ********************/
@@ -111,11 +123,7 @@ class Figure extends Tree {
           },
           (_result) => {
             // 需要将当前figure变动通知相关的diagram。
-            if (this.diagram.length > 0) {
-              each(this.diagram)((val) => {
-                val.updated();
-              });
-            }
+            this.notifyDiagram();
           }
         )
       );
@@ -141,7 +149,10 @@ class Figure extends Tree {
   // 设置父节点，并更新parameter的相关参数。
   set parent(newValue: Figure) {
     super.parent = newValue;
-    this.connection();
+    this.diagram = [];
+    // 当前节点修改成为新的父节点的diagram内容。
+    this.addDiagram(newValue.diagram);
+    this.connection(); // 因为更新parameter的内容，所以自动调用回调通知。
   }
 
   // 代理方法,开放指定的相关参数给到调用方，限制接口展示方便获取。
@@ -171,6 +182,8 @@ class Figure extends Tree {
         this._display = showing;
       }, false);
     }
+    // 通知重绘当前内容。
+    this.notifyDiagram();
   }
 
   get display() {
@@ -256,10 +269,12 @@ export function toFigure(setting: FigureSetting) {
     setting.path,
     setting.events,
     setting.animate,
-    setting.diagram
+    setting.diagram,
+    setting.display
   );
   if (setting.children && setting.children.length > 0) {
     each(setting.children)((set) => {
+      if (!setting.display) set.display = false;
       figure.child = toFigure(set);
     });
   }

@@ -8,6 +8,9 @@ import {
 import { isObject, toArray } from "lodash";
 import Player from "../controller/action/player";
 import { toActable } from "../controller/action/index";
+import { intoFirst } from "../utils/index";
+import { ImplyWord } from "../config/keyWord";
+import { acquistion } from "../config/common";
 
 export type SingleAnimateSetting =
   | Actable
@@ -38,9 +41,26 @@ class Animate {
   animations: Mapping<string, AnimateNode[]>; // 相关动画内容
 
   constructor(context: any, setting?: animateSetting) {
-    this.context = context;
+    this.context = this.proxyContext(context);
     this.animations = new Mapping<string, AnimateNode[]>();
     setting && this.add(setting);
+  }
+
+  private proxyContext(context: any) {
+    const defaultHandler = {
+      set(target: any, key: string, value: any) {
+        const Imply = ImplyWord;
+        if (intoFirst(key, Imply)) {
+          return (target.parameter[key.replace(Imply + ".", "")] = value);
+        } else {
+          return (target.parameter["cache$." + key] = value);
+        }
+      },
+      get(target: any, key: string) {
+        return target.parameter[key];
+      },
+    };
+    return acquistion(context, defaultHandler);
   }
 
   add(name: string, func: SingleAnimateSetting, once?: boolean);
