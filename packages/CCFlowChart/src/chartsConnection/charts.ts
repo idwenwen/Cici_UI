@@ -19,6 +19,8 @@ class ComponentConnection {
     this.endComponent = endComponent;
     this.connection = link;
   }
+
+  updated() {}
 }
 
 class ChartConnection {}

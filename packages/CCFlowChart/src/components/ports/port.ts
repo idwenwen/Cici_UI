@@ -63,6 +63,7 @@ class Port {
     const events = {
       linkFrom: function (eve, point) {
         // 表示从当前点连接出去。
+        //
       },
     };
   }
