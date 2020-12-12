@@ -1,13 +1,5 @@
-import { toChain } from "@cc/diagram/controller/action";
-import { ComponentsStatus } from "..";
-
-const CHOOSE = "#4159D1";
-const SUCCESS = "#0EC7A5";
-const PROGRESS = "rgba(36,182,139,0.6)";
-const DISABLE_PROGRESS = "rgba(187,187,200,0.6)";
-const ERROR = "#FF4F38";
-const UNRUN = "#e8e8ef";
-const COULDNOTRUN = "#BBBBC8";
+import Border from "./containerBorder";
+import ContainerContent from "./containerContent";
 
 class Container {
   private toParameter() {
@@ -37,4 +29,22 @@ class Container {
       },
     };
   }
+
+  private toEvents() {
+    return {
+      rightClick(eve) {
+        // 打开右键菜单内容。
+      },
+    };
+  }
+
+  toSetting() {
+    return {
+      parameter: this.toParameter(),
+      events: this.toEvents(),
+      children: [new ContainerContent().toSetting(), new Border().toSetting()],
+    };
+  }
 }
+
+export default Container;

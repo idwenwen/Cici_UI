@@ -1,18 +1,18 @@
-import { ComponentsStatus } from "..";
-import { config } from "../config";
+import Container from "./container";
+import TextMeasure from "./text";
 
 // 当前实例主要管理component的展示主体
 class Content {
-  private getParameter() {
+  private toParameter() {
     return {
       text() {
         return this.name; // 获取组件名称
       },
       width() {
-        return this.width * (1 - config.panelBorder);
+        return this.width;
       },
       height() {
-        return this.height * (1 - config.panelBorder);
+        return this.height;
       },
       // 当前组件的状态，以便方便判定颜色与状态。
       status() {
@@ -28,9 +28,26 @@ class Content {
         return this.center;
       },
       radius() {
-        // 半径内容
         return this.radius;
       },
     };
   }
+
+  private toEvent() {
+    return {
+      textChange(eve) {
+        // 文本修改事件
+      },
+    };
+  }
+
+  toSetting() {
+    return {
+      parameter: this.toParameter(),
+      events: this.toEvent(),
+      children: [new Container().toSetting(), new TextMeasure().toSetting()],
+    };
+  }
 }
+
+export default Content;

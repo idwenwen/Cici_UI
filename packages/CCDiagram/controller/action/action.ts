@@ -1,13 +1,35 @@
 import Player from "./player";
-import { Duration } from "../../commonType";
+import { Combinable, Duration } from "../../commonType";
 import Progress, { RateCurve } from "../progress";
-import { UUID } from "@cc/tools";
+import { each, Mapping, toRGBA, UUID } from "@cc/tools";
 import { Actable, Variation } from "./declare";
+
+const preset_link = ["number", "color"];
 
 /**
  * 当前内容表示的是单个的动作变化内容。
  */
 class Action extends Player {
+  static VariationFunction: Mapping<string, Variation> = new Mapping();
+
+  static set(name: string, operation: Variation);
+  static set(name: string[], operation: Variation[]);
+  static set(name: Combinable, operation: Combinable) {
+    return Action.VariationFunction.set(name, operation);
+  }
+
+  static remove(name: string);
+  static remove(name: string[]);
+  static remove(name: Combinable) {
+    return Action.VariationFunction.delete(name);
+  }
+
+  static get(name: string);
+  static get(name: string[]);
+  static get(name: Combinable) {
+    return Action.VariationFunction.get(name);
+  }
+
   progressing: Progress; // 当前action的运行进度计算方法。
   time: Duration; // 动作运行时长。
   variation: Variation; // 变换函数。
@@ -72,3 +94,22 @@ export function toAction(act: Actable) {
     act.repeat
   );
 }
+
+Action.set(preset_link, [
+  (progress: number, condition: number, target: number) => {
+    return condition + (target - condition) * progress;
+  },
+  (progress: number, condition: string, target: string) => {
+    const origin = toRGBA(condition)
+      .replace(/[(|)|rgba]/g, "")
+      .split(",");
+    const result = toRGBA(target)
+      .replace(/[(|)|rgba]/g, "")
+      .split(",");
+    const final = each(origin)((val, index) => {
+      const bet = parseInt(result[index]) - parseInt(val);
+      return parseInt(val) + bet * progress;
+    });
+    return `rgba(${final.join(",")})`;
+  },
+]);

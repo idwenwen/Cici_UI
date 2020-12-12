@@ -1,8 +1,10 @@
-import Port from "./port";
+import { Panel, toPanel } from "@cc/diagram";
+import { Styles } from "@cc/diagram/panel/style";
 import { each, Exception, Mapping } from "@cc/tools";
-import { Diagram } from "@cc/diagram";
-import { portConfig } from "./ports/portConfig";
-import PanelManager from "./panel";
+import { config } from "./config";
+import Content from "./content";
+import PanelManager from "../panelManager";
+import Ports from "./ports";
 
 // 组件状态
 export enum ComponentsStatus {
@@ -19,11 +21,21 @@ export enum Role {
 }
 
 class GlobalComponentsManage {
-  comps: Mapping<string, Components[]>;
+  comps: Mapping<string, Components>;
+  count: object;
 
   getDefaultName(type: string) {
-    const list = this.comps.get(type);
-    return `${type}_${list.length}`;
+    const count = this.count[type] || 0;
+    this.count[type] = count + 1;
+    return `${type}_${count}`;
+  }
+
+  set(type: string, comp: Components) {
+    this.comps.set(type, comp);
+  }
+
+  get(name: string) {
+    return this.comps.get(name);
   }
 }
 
@@ -35,21 +47,21 @@ class Components {
   status: ComponentsStatus;
   disable: boolean; //当前组件是否运行
   role: Role; // 当前组件展示的角色方
+  choosed: boolean; // 组件被选取的状态
 
-  inputPort: Port[]; // 当前组件入口。
-  outputPort: Port[]; // 当前组件出口。
+  allSingleType: boolean; // 组件单端口设置
 
-  panel: PanelManager;
+  panelManager: Panel;
   constructor(
     type: string, // 组件类型
     status: string, // 当前组件的状态
     disable: boolean, // 当前组件是否是不需要运行的。
+    choosed: boolean, // 当前组件是否被选择
 
     name?: string, // 当前组件名称
     role?: string, // 当前组件针对的角色
 
-    singlePort: boolean = false, // 是否为单端口形式
-    multiple: boolean = false // 是否可以多次连接。
+    allSingleType: boolean = false
   ) {
     this.name = name || globalComponents.getDefaultName(type);
     this.type = type;
@@ -58,10 +70,11 @@ class Components {
     this.role = this.matchRole(role);
 
     this.disable = disable;
+    this.choosed = choosed;
 
-    const ports = this.matchPort(type, singlePort, multiple);
-    this.inputPort = <Port[]>ports.input;
-    this.outputPort = <Port[]>ports.output;
+    this.allSingleType = allSingleType;
+    this.panelManager = null;
+    globalComponents.set(this.type, this);
   }
 
   // 判定当前的展示状态
@@ -98,33 +111,82 @@ class Components {
     });
     return Role[res];
   }
-  // 依据当前的类型确定组件的端口
-  private matchPort(
-    type: string,
-    singlePort: boolean = false,
-    multiple: boolean = false
-  ) {
-    let { input, output } = portConfig(type, singlePort, multiple);
-    input = each(input)((inp) => {
-      return new Port(inp.name, inp.type, inp.tip, this);
-    });
-    output = each(output)((out) => {
-      return new Port(out.name, out.type, out.tip, this);
-    });
+
+  toSetting() {
     return {
-      input,
-      output,
+      parameter: {
+        name: this.name,
+        width() {
+          return parseFloat(this.style.width) * (1 - config.panelBorder);
+        },
+        height() {
+          return parseFloat(this.style.height) * (1 - config.panelBorder);
+        },
+        radius() {
+          const times = 0.005;
+          const min_radius = 2;
+          const max_radius = 20;
+          const width = parseFloat(this.style.width);
+          let radius = width * times;
+          radius =
+            radius < min_radius
+              ? min_radius
+              : radius > max_radius
+              ? max_radius
+              : radius;
+          return radius;
+        },
+        choosed: this.choosed,
+        status: this.status,
+        disable: this.disable,
+        center() {
+          return [
+            parseFloat(this.style.width) / 2,
+            parseFloat(this.style.height) / 2,
+          ];
+        },
+      },
+      children: [
+        new Content().toSetting(),
+        new Ports(this.type, this.allSingleType, this.role).toSetting(),
+      ],
     };
   }
 
-  // 组件连接接入
-  linkIn() {}
+  toSettingTree(width?: number, height?: number, point?: [number, number]) {
+    const panel: any = new PanelManager().toSetting(width, height, point);
+    panel.diagram = {
+      component: this.toSetting(),
+    };
+    return panel;
+  }
 
-  // 组件连出, 通知全局生成linking对象内容，并可以拖动。
-  linkOut() {}
+  render(width?: number, height?: number, point?: [number, number]) {
+    const setting = this.toSettingTree(width, height, point);
+    this.panelManager = toPanel(setting);
+  }
 
-  // 依据当前将要连接入的类型来判定，当前组件端口是否需要高亮。
-  hintLint(willLinkInType: string) {}
+  setStyle(style: object) {
+    this.panelManager.style.set(<Styles>style);
+  }
+
+  removeStyle(styles: string | string[]) {
+    this.panelManager.style.remove(styles);
+  }
+
+  rotate(angle: number) {
+    this.panelManager.transfrom.rotate(angle);
+  }
+
+  translate(x: number, y: number) {
+    this.panelManager.transfrom.translate(x, y);
+  }
+
+  scale(times: number) {
+    this.panelManager.transfrom.scale(times);
+  }
+
+  getFigure(combination: Function) {}
 }
 
 export default Components;

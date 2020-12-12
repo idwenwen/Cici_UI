@@ -22,6 +22,10 @@ class Render {
     this.willDraw = [];
   }
 
+  needBeat() {
+    return this.willDraw.length > 0;
+  }
+
   add(drawable: Drawable) {
     this.willDraw.find((val) => val.uuid === drawable.uuid) ||
       this.willDraw.push(drawable);

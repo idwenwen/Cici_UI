@@ -45,6 +45,9 @@ class Panel {
     this._width = width;
     this._height = height;
 
+    if (!style.width) style.width = width + "px";
+    if (!style.height) style.height = height + "px";
+
     this.connectToStyle(style);
     this.connectToClass(classes);
     this.connectToTransfrom(transform);
@@ -106,6 +109,7 @@ class Panel {
   set width(newWidth: number) {
     if (newWidth !== this._width) {
       this._width = newWidth;
+      this.style.set("width", newWidth + "px");
       domOperation.setAttr(this.dom, "width", this._width + "");
       // 由于dom的像素大小改变，所以canvas会被清空，需要重绘当前panel上的内容。
       each(this.diagram)((dia) => {
@@ -120,6 +124,7 @@ class Panel {
   set height(newHeight: number) {
     if (newHeight !== this._height) {
       this._height = newHeight;
+      this.style.set("height", newHeight + "px");
       domOperation.setAttr(this.dom, "height", this._height + "");
       // 由于dom的像素大小改变，所以canvas会被清空，需要重绘当前panel上的内容。
       each(this.diagram)((dia) => {
@@ -139,16 +144,23 @@ class Panel {
   }
 
   private connectToStyle(styles: Styles) {
+    const _t = this;
     this.style = new CanvasStyle(styles);
     this.style.subscribe();
     Watching(
-      this,
-      () => {
-        this.style.setStyle(this.dom);
+      this.style,
+      function () {
+        this.setStyle(this.dom);
       },
-      () => {
+      function () {
         // 当前内容变动将会影响到diagram之中的样式内容。
-        each(this.diagram)((val) => {
+        if (parseFloat(this.style.width) !== _t.width) {
+          _t.width = parseFloat(this.style.width);
+        }
+        if (parseFloat(this.style.height) !== _t.height) {
+          _t.height = parseFloat(this.style.height);
+        }
+        each(_t.diagram)((val) => {
           val.updated();
         });
       }

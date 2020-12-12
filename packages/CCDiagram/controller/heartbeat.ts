@@ -100,7 +100,8 @@ class HeartBeat {
         requestAnimationFrame((timeStep: Duration) => {
           // 通过中间件的形式，为当前内容添加相关回调与过滤机制。
           this.middleWare.compose()({}, (context, next) => {
-            const hasNext = step.call(_t, timeStep);
+            const hasNext =
+              step.call(_t, timeStep) || renderController.needBeat();
             if (hasNext) run();
             else _t.running = false;
             renders(); // 渲染当前的绘制。

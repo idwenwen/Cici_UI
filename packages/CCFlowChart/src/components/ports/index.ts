@@ -33,17 +33,7 @@ class Ports {
   private getParameter() {
     return {
       radius: function () {
-        const times = 0.005;
-        const min_radius = 2;
-        const max_radius = 20;
-        let radius = this.width * times;
-        radius =
-          radius < min_radius
-            ? min_radius
-            : radius > max_radius
-            ? max_radius
-            : radius;
-        return radius;
+        return this.radius;
       },
       width: function () {
         const times = 0.02;

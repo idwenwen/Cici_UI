@@ -1,3 +1,4 @@
+import { Action, Figure } from "@cc/diagram";
 import { toChain } from "@cc/diagram/controller/action/chain";
 import { ComponentsStatus } from "..";
 
@@ -8,6 +9,31 @@ const DISABLE_PROGRESS = "rgba(187,187,200,0.6)";
 const ERROR = "#FF4F38";
 const UNRUN = "#e8e8ef";
 const COULDNOTRUN = "#BBBBC8";
+
+function contentColor(choosed, status, disable) {
+  if (choosed) {
+    if (status === ComponentsStatus.running) {
+      return disable ? DISABLE_PROGRESS : PROGRESS;
+    }
+    return CHOOSE;
+  } else if (disable && status !== ComponentsStatus.unrun) {
+    return UNRUN;
+  } else if (disable && status === ComponentsStatus.unrun) {
+    return COULDNOTRUN;
+  } else if (status === ComponentsStatus.success) {
+    return SUCCESS;
+  } else if (status === ComponentsStatus.running) {
+    if (disable) {
+      return DISABLE_PROGRESS;
+    } else {
+      return PROGRESS;
+    }
+  } else if (status === ComponentsStatus.fail) {
+    return ERROR;
+  } else if (status === ComponentsStatus.unrun) {
+    return UNRUN;
+  }
+}
 
 class ContainerContent {
   private toParameter() {
@@ -22,28 +48,7 @@ class ContainerContent {
         return this.radius;
       },
       color() {
-        if (this.choosed) {
-          if (this.status === ComponentsStatus.running) {
-            return this.disable ? DISABLE_PROGRESS : PROGRESS;
-          }
-          return CHOOSE;
-        } else if (this.disable && this.status !== ComponentsStatus.unrun) {
-          return UNRUN;
-        } else if (this.disable && this.status === ComponentsStatus.unrun) {
-          return COULDNOTRUN;
-        } else if (this.status === ComponentsStatus.success) {
-          return SUCCESS;
-        } else if (this.status === ComponentsStatus.running) {
-          if (this.disable) {
-            return DISABLE_PROGRESS;
-          } else {
-            return PROGRESS;
-          }
-        } else if (this.status === ComponentsStatus.fail) {
-          return ERROR;
-        } else if (this.statu === ComponentsStatus.unrun) {
-          return UNRUN;
-        }
+        return contentColor(this.choosed, this.status, this.disable);
       },
       center() {
         return this.center;
@@ -88,5 +93,44 @@ class ContainerContent {
     });
   }
 
-  private toNewType() {}
+  private toStatus() {
+    let originProgress, originColor;
+    return toChain({
+      list: [
+        {
+          variation(progress, status) {
+            if (this.type === ComponentsStatus.running) {
+              (<Figure>this["origin"]).animationOperation("end")("loading");
+            }
+            if (!originProgress) originProgress = this.progress;
+            if (!originColor) originColor = this.color;
+            this.progress = originProgress + (1 - originProgress) * progress;
+            const target = contentColor(this.choosed, status, this.disable);
+            this.color = Action.get("color")(progress, originColor, target);
+          },
+          time: 500,
+        },
+        {
+          variation() {
+            originProgress = null;
+            originColor = null;
+          },
+          time: 0,
+        },
+      ],
+    });
+  }
+
+  toSetting() {
+    return {
+      parameter: this.toParameter(),
+      path: "rect",
+      animate: {
+        loading: this.loading(),
+        toStatus: this.toStatus(),
+      },
+    };
+  }
 }
+
+export default ContainerContent;
